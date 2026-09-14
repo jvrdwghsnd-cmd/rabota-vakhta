@@ -8,18 +8,36 @@ export default async function handler(req, res) {
     });
   }
 
-  // Установка webhook
-  if (req.method === "GET" && req.query?.setup === "1") {
-    const webhookUrl =
-      "https://rabota-vakhta-bot.vercel.app/api/bot";
+  // Установка webhookif (req.method === "GET" && req.query?.setup === "1") {
+  const checkResponse = await fetch(
+    `https://api.telegram.org/bot${token}/getMe`
+  );
 
-    const response = await fetch(
-      `https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webhookUrl)}`
-    );
+  const checkResult = await checkResponse.json();
 
-    const result = await response.json();
+  if (!checkResult.ok) {
+    return res.status(200).json({
+      ok: false,
+      step: "getMe",
+      telegram: checkResult
+    });
+  }
 
-    return res.status(200).json(result);
+  const webhookUrl =
+    "https://rabota-vakhta-bot.vercel.app/api/bot";
+
+  const webhookResponse = await fetch(
+    `https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webhookUrl)}`
+  );
+
+  const webhookResult = await webhookResponse.json();
+
+  return res.status(200).json({
+    ok: webhookResult.ok,
+    bot: checkResult.result.username,
+    webhook: webhookResult
+  });
+});
   }
 
   // Проверка работы
