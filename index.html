@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Работа | Вахта</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+    }
+
+    header {
+      padding: 70px 20px;
+      text-align: center;
+      background: #181818;
+    }
+
+    h1 {
+      font-size: 48px;
+      margin: 0 0 15px;
+    }
+
+    header p {
+      font-size: 20px;
+      color: #bbb;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      padding: 50px 20px;
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 35px;
+    }
+
+    .jobs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .job {
+      background: #1d1d1d;
+      border: 1px solid #333;
+      padding: 25px;
+      border-radius: 12px;
+    }
+
+    .job h3 {
+      margin-top: 0;
+      font-size: 22px;
+    }
+
+    .job p {
+      color: #bbb;
+      line-height: 1.5;
+    }
+
+    .button {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 13px 22px;
+      background: #fff;
+      color: #111;
+      text-decoration: none;
+      border-radius: 7px;
+      font-weight: bold;
+    }
+
+    .cta {
+      margin-top: 50px;
+      padding: 40px 20px;
+      text-align: center;
+      background: #181818;
+      border-radius: 15px;
+    }
+
+    footer {
+      padding: 30px;
+      text-align: center;
+      color: #777;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>РАБОТА | ВАХТА</h1>
+  <p>Вакансии, поиск и подбор рабочих специалистов</p>
+</header>
+
+<section class="container">
+  <h2>Актуальные вакансии</h2>
+
+  <div class="jobs">
+
+    <div class="job">
+      <h3>Монтажник строительных лесов</h3>
+      <p>Требуются опытные специалисты для работы на строительных объектах.</p>
+      <a class="button" href="#">Подробнее</a>
+    </div>
+
+    <div class="job">
+      <h3>Монтажник ЖБК</h3>
+      <p>Работа для опытных монтажников железобетонных конструкций.</p>
+      <a class="button" href="#">Подробнее</a>
+    </div>
+
+    <div class="job">
+      <h3>Сварщик</h3>
+      <p>Требуются квалифицированные сварщики на строительные объекты.</p>
+      <a class="button" href="#">Подробнее</a>
+    </div>
+
+    <div class="job">
+      <h3>Изолировщик</h3>
+      <p>Ищем опытных специалистов по теплоизоляции.</p>
+      <a class="button" href="#">Подробнее</a>
+    </div>
+
+    <div class="job">
+      <h3>Маляр</h3>
+      <p>Работа для профессиональных маляров на строительных объектах.</p>
+      <a class="button" href="#">Подробнее</a>
+    </div>
+
+  </div>
+
+  <div class="cta">
+    <h2>Ищете работу?</h2>
+    <p>Присоединяйтесь к нашей базе специалистов.</p>
+    <a class="button" href="https://t.me/">Перейти в Telegram</a>
+  </div>
+</section>
+
+<footer>
+  © 2026 Работа | Вахта
+</footer>
+
+</body>
+</html>
