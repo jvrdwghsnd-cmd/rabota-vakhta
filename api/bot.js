@@ -138,7 +138,194 @@ export default async function handler(req, res) {
           "🔐 АДМИН-ПАНЕЛЬ\n\n" +
           "👷 Сохранённых анкет: " +
           rows[0].count;
+
+        keyboard = {
+          keyboard: [
+            [
+              { text: "👷 Все анкеты" }
+            ],
+            [
+              { text: "📊 Статистика" }
+            ],
+            [
+              { text: "🏠 Главное меню" }
+            ]
+          ],
+          resize_keyboard: true
+        };
       }
+
+    // ВСЕ АНКЕТЫ
+    } else if (text === "👷 Все анкеты") {
+
+      if (chatIdText !== String(process.env.ADMIN_ID)) {
+
+        reply = "⛔ Доступ запрещён.";
+
+      } else {
+
+        const rows = await sql`
+          SELECT
+            id,
+            name,
+            phone,
+            profession,
+            experience,
+            city,
+            shift,
+            created_at
+          FROM candidates
+          ORDER BY created_at DESC
+        `;
+
+        if (rows.length === 0) {
+
+          reply =
+            "👷 ВСЕ АНКЕТЫ\n\n" +
+            "Анкет пока нет.";
+
+        } else {
+
+          reply = "👷 ВСЕ АНКЕТЫ\n\n";
+
+          rows.forEach((candidate, index) => {
+
+            reply +=
+              "━━━━━━━━━━━━━━\n" +
+              "👤 №" + (index + 1) + "\n\n" +
+              "👤 Имя: " + candidate.name + "\n" +
+              "📱 Телефон: " + candidate.phone + "\n" +
+              "👷 Профессия: " + candidate.profession + "\n" +
+              "📅 Опыт: " + candidate.experience + "\n" +
+              "📍 Город: " + candidate.city + "\n" +
+              "🚧 Вахта: " + candidate.shift + "\n";
+          });
+
+          reply +=
+            "\n━━━━━━━━━━━━━━\n" +
+            "Всего анкет: " + rows.length;
+        }
+
+        keyboard = {
+          keyboard: [
+            [
+              { text: "👷 Все анкеты" }
+            ],
+            [
+              { text: "📊 Статистика" }
+            ],
+            [
+              { text: "🔐 Админ-панель" }
+            ]
+          ],
+          resize_keyboard: true
+        };
+      }
+
+    // СТАТИСТИКА
+    } else if (text === "📊 Статистика") {
+
+      if (chatIdText !== String(process.env.ADMIN_ID)) {
+
+        reply = "⛔ Доступ запрещён.";
+
+      } else {
+
+        const total = await sql`
+          SELECT COUNT(*)::int AS count
+          FROM candidates
+        `;
+
+        const cities = await sql`
+          SELECT COUNT(DISTINCT city)::int AS count
+          FROM candidates
+        `;
+
+        const professions = await sql`
+          SELECT COUNT(DISTINCT profession)::int AS count
+          FROM candidates
+        `;
+
+        reply =
+          "📊 СТАТИСТИКА\n\n" +
+          "👷 Всего специалистов: " + total[0].count + "\n" +
+          "📍 Городов: " + cities[0].count + "\n" +
+          "👷 Профессий: " + professions[0].count;
+      }
+
+      keyboard = {
+        keyboard: [
+          [
+            { text: "👷 Все анкеты" }
+          ],
+          [
+            { text: "📊 Статистика" }
+          ],
+          [
+            { text: "🏠 Главное меню" }
+          ]
+        ],
+        resize_keyboard: true
+      };
+
+    // АДМИН-ПАНЕЛЬ КНОПКА
+    } else if (text === "🔐 Админ-панель") {
+
+      if (chatIdText !== String(process.env.ADMIN_ID)) {
+
+        reply = "⛔ Доступ запрещён.";
+
+      } else {
+
+        const rows = await sql`
+          SELECT COUNT(*)::int AS count
+          FROM candidates
+        `;
+
+        reply =
+          "🔐 АДМИН-ПАНЕЛЬ\n\n" +
+          "👷 Сохранённых анкет: " +
+          rows[0].count;
+
+        keyboard = {
+          keyboard: [
+            [
+              { text: "👷 Все анкеты" }
+            ],
+            [
+              { text: "📊 Статистика" }
+            ],
+            [
+              { text: "🏠 Главное меню" }
+            ]
+          ],
+          resize_keyboard: true
+        };
+      }
+
+    // ГЛАВНОЕ МЕНЮ
+    } else if (text === "🏠 Главное меню") {
+
+      reply =
+        "👷 РАБОТА | ВАХТА\n\n" +
+        "Выберите нужный раздел:";
+
+      keyboard = {
+        keyboard: [
+          [
+            { text: "👷 Я ищу работу" },
+            { text: "🏢 Я работодатель" }
+          ],
+          [
+            { text: "🔎 Найти работу" },
+            { text: "📋 Разместить вакансию" }
+          ],
+          [
+            { text: "📞 Связаться с администратором" }
+          ]
+        ],
+        resize_keyboard: true
+      };
 
     // START
     } else if (text === "/start") {
@@ -292,7 +479,7 @@ export default async function handler(req, res) {
         "Готовы работать вахтой?\n\n" +
         "Напишите: Да или Нет.";
 
-    // ШАГ 6 — СОХРАНЕНИЕ АНКЕТЫ
+    // ШАГ 6
     } else if (session?.step === 6) {
 
       await sql`
