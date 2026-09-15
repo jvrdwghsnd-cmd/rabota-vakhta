@@ -120,6 +120,26 @@ export default async function handler(req, res) {
         "🆔 Ваш Telegram ID:\n\n" +
         chatIdText;
 
+    // ADMIN PANEL
+    } else if (text === "/admin") {
+
+      if (chatIdText !== String(process.env.ADMIN_ID)) {
+
+        reply = "⛔ Доступ запрещён.";
+
+      } else {
+
+        const rows = await sql`
+          SELECT COUNT(*)::int AS count
+          FROM candidates
+        `;
+
+        reply =
+          "🔐 АДМИН-ПАНЕЛЬ\n\n" +
+          "👷 Сохранённых анкет: " +
+          rows[0].count;
+      }
+
     // START
     } else if (text === "/start") {
 
@@ -272,7 +292,7 @@ export default async function handler(req, res) {
         "Готовы работать вахтой?\n\n" +
         "Напишите: Да или Нет.";
 
-    // ШАГ 6
+    // ШАГ 6 — СОХРАНЕНИЕ АНКЕТЫ
     } else if (session?.step === 6) {
 
       await sql`
@@ -369,6 +389,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
 
   } catch (error) {
+
     console.error(error);
 
     return res.status(500).json({
