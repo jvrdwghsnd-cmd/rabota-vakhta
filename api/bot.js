@@ -30,6 +30,21 @@ async function initDb() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS vacancies (
+      id BIGSERIAL PRIMARY KEY,
+      chat_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      profession TEXT NOT NULL,
+      location TEXT NOT NULL,
+      experience TEXT NOT NULL,
+      conditions TEXT NOT NULL,
+      shift TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
 }
 
 async function getSession(chatId) {
@@ -129,15 +144,23 @@ export default async function handler(req, res) {
 
       } else {
 
-        const rows = await sql`
+        const candidates = await sql`
           SELECT COUNT(*)::int AS count
           FROM candidates
+        `;
+
+        const vacancies = await sql`
+          SELECT COUNT(*)::int AS count
+          FROM vacancies
         `;
 
         reply =
           "🔐 АДМИН-ПАНЕЛЬ\n\n" +
           "👷 Сохранённых анкет: " +
-          rows[0].count;
+          candidates[0].count +
+          "\n" +
+          "📋 Вакансий: " +
+          vacancies[0].count;
 
         keyboard = {
           keyboard: [
@@ -146,6 +169,7 @@ export default async function handler(req, res) {
               { text: "🔎 Найти специалиста" }
             ],
             [
+              { text: "📋 Все вакансии" },
               { text: "📊 Статистика" }
             ],
             [
@@ -156,7 +180,7 @@ export default async function handler(req, res) {
         };
       }
 
-    // ВСЕ АНКЕТЫ
+    // ALL CANDIDATES
     } else if (text === "👷 Все анкеты") {
 
       if (chatIdText !== String(process.env.ADMIN_ID)) {
@@ -173,8 +197,7 @@ export default async function handler(req, res) {
             profession,
             experience,
             city,
-            shift,
-            created_at
+            shift
           FROM candidates
           ORDER BY created_at DESC
         `;
@@ -206,25 +229,26 @@ export default async function handler(req, res) {
             "\n━━━━━━━━━━━━━━\n" +
             "Всего анкет: " + rows.length;
         }
-
-        keyboard = {
-          keyboard: [
-            [
-              { text: "👷 Все анкеты" },
-              { text: "🔎 Найти специалиста" }
-            ],
-            [
-              { text: "📊 Статистика" }
-            ],
-            [
-              { text: "🔐 Админ-панель" }
-            ]
-          ],
-          resize_keyboard: true
-        };
       }
 
-    // НАЧАЛО ПОИСКА СПЕЦИАЛИСТА
+      keyboard = {
+        keyboard: [
+          [
+            { text: "👷 Все анкеты" },
+            { text: "🔎 Найти специалиста" }
+          ],
+          [
+            { text: "📋 Все вакансии" },
+            { text: "📊 Статистика" }
+          ],
+          [
+            { text: "🔐 Админ-панель" }
+          ]
+        ],
+        resize_keyboard: true
+      };
+
+    // START SEARCH
     } else if (text === "🔎 Найти специалиста") {
 
       if (chatIdText !== String(process.env.ADMIN_ID)) {
@@ -236,23 +260,11 @@ export default async function handler(req, res) {
         await sql`
           INSERT INTO bot_sessions (
             chat_id,
-            step,
-            name,
-            phone,
-            profession,
-            experience,
-            city,
-            shift
+            step
           )
           VALUES (
             ${chatIdText},
-            100,
-            '',
-            '',
-            '',
-            '',
-            '',
-            ''
+            100
           )
           ON CONFLICT (chat_id)
           DO UPDATE SET
@@ -279,7 +291,7 @@ export default async function handler(req, res) {
         resize_keyboard: true
       };
 
-    // РЕЗУЛЬТАТ ПОИСКА
+    // SEARCH RESULT
     } else if (session?.step === 100) {
 
       if (chatIdText !== String(process.env.ADMIN_ID)) {
@@ -347,6 +359,7 @@ export default async function handler(req, res) {
             { text: "👷 Все анкеты" }
           ],
           [
+            { text: "📋 Все вакансии" },
             { text: "📊 Статистика" }
           ],
           [
@@ -356,7 +369,258 @@ export default async function handler(req, res) {
         resize_keyboard: true
       };
 
-    // СТАТИСТИКА
+    // START VACANCY
+    } else if (text === "📋 Разместить вакансию") {
+
+      await sql`
+        INSERT INTO bot_sessions (
+          chat_id,
+          step
+        )
+        VALUES (
+          ${chatIdText},
+          200
+        )
+        ON CONFLICT (chat_id)
+        DO UPDATE SET
+          step = 200,
+          updated_at = NOW()
+      `;
+
+      reply =
+        "📋 РАЗМЕЩЕНИЕ ВАКАНСИИ\n\n" +
+        "Шаг 1 из 7\n\n" +
+        "Напишите название вакансии.\n\n" +
+        "Например: Монтажник строительных лесов";
+
+      keyboard = {
+        remove_keyboard: true
+      };
+
+    // VACANCY STEP 1
+    } else if (session?.step === 200) {
+
+      await sql`
+        UPDATE bot_sessions
+        SET
+          name = ${text},
+          step = 201,
+          updated_at = NOW()
+        WHERE chat_id = ${chatIdText}
+      `;
+
+      reply =
+        "👷 Шаг 2 из 7\n\n" +
+        "Какая профессия требуется?";
+
+    // VACANCY STEP 2
+    } else if (session?.step === 201) {
+
+      await sql`
+        UPDATE bot_sessions
+        SET
+          profession = ${text},
+          step = 202,
+          updated_at = NOW()
+        WHERE chat_id = ${chatIdText}
+      `;
+
+      reply =
+        "📍 Шаг 3 из 7\n\n" +
+        "Укажите город и объект.";
+
+    // VACANCY STEP 3
+    } else if (session?.step === 202) {
+
+      await sql`
+        UPDATE bot_sessions
+        SET
+          city = ${text},
+          step = 203,
+          updated_at = NOW()
+        WHERE chat_id = ${chatIdText}
+      `;
+
+      reply =
+        "📅 Шаг 4 из 7\n\n" +
+        "Какой опыт требуется?\n\n" +
+        "Например: от 2 лет.";
+
+    // VACANCY STEP 4
+    } else if (session?.step === 203) {
+
+      await sql`
+        UPDATE bot_sessions
+        SET
+          experience = ${text},
+          step = 204,
+          updated_at = NOW()
+        WHERE chat_id = ${chatIdText}
+      `;
+
+      reply =
+        "💰 Шаг 5 из 7\n\n" +
+        "Опишите условия и оплату.";
+
+    // VACANCY STEP 5
+    } else if (session?.step === 204) {
+
+      await sql`
+        UPDATE bot_sessions
+        SET
+          shift = ${text},
+          step = 205,
+          updated_at = NOW()
+        WHERE chat_id = ${chatIdText}
+      `;
+
+      reply =
+        "🚧 Шаг 6 из 7\n\n" +
+        "Работа вахтой?\n\n" +
+        "Напишите: Да или Нет.";
+
+    // VACANCY STEP 6
+    } else if (session?.step === 205) {
+
+      await sql`
+        UPDATE bot_sessions
+        SET
+          shift = ${text},
+          step = 206,
+          updated_at = NOW()
+        WHERE chat_id = ${chatIdText}
+      `;
+
+      reply =
+        "📱 Шаг 7 из 7\n\n" +
+        "Укажите контактный номер работодателя.";
+
+    // VACANCY STEP 7
+    } else if (session?.step === 206) {
+
+      const vacancyTitle = session.name || "";
+      const vacancyProfession = session.profession || "";
+      const vacancyLocation = session.city || "";
+      const vacancyExperience = session.experience || "";
+      const vacancyShift = session.shift || "";
+
+      await sql`
+        INSERT INTO vacancies (
+          chat_id,
+          title,
+          profession,
+          location,
+          experience,
+          conditions,
+          shift,
+          phone
+        )
+        VALUES (
+          ${chatIdText},
+          ${vacancyTitle},
+          ${vacancyProfession},
+          ${vacancyLocation},
+          ${vacancyExperience},
+          ${"Условия указаны работодателем"},
+          ${vacancyShift},
+          ${text}
+        )
+      `;
+
+      await sql`
+        DELETE FROM bot_sessions
+        WHERE chat_id = ${chatIdText}
+      `;
+
+      reply =
+        "✅ ВАКАНСИЯ ПРИНЯТА!\n\n" +
+        "📋 Вакансия: " + vacancyTitle + "\n" +
+        "👷 Профессия: " + vacancyProfession + "\n" +
+        "📍 Город / объект: " + vacancyLocation + "\n" +
+        "📅 Опыт: " + vacancyExperience + "\n" +
+        "🚧 Вахта: " + vacancyShift + "\n" +
+        "📱 Контакт: " + text + "\n\n" +
+        "Вакансия сохранена.";
+
+      keyboard = {
+        keyboard: [
+          [
+            { text: "🏠 Главное меню" }
+          ]
+        ],
+        resize_keyboard: true
+      };
+
+    // ALL VACANCIES
+    } else if (text === "📋 Все вакансии") {
+
+      if (chatIdText !== String(process.env.ADMIN_ID)) {
+
+        reply = "⛔ Доступ запрещён.";
+
+      } else {
+
+        const rows = await sql`
+          SELECT
+            id,
+            title,
+            profession,
+            location,
+            experience,
+            conditions,
+            shift,
+            phone
+          FROM vacancies
+          ORDER BY created_at DESC
+        `;
+
+        if (rows.length === 0) {
+
+          reply =
+            "📋 ВСЕ ВАКАНСИИ\n\n" +
+            "Вакансий пока нет.";
+
+        } else {
+
+          reply = "📋 ВСЕ ВАКАНСИИ\n\n";
+
+          rows.forEach((vacancy, index) => {
+
+            reply +=
+              "━━━━━━━━━━━━━━\n" +
+              "📋 №" + (index + 1) + "\n\n" +
+              "📋 Вакансия: " + vacancy.title + "\n" +
+              "👷 Профессия: " + vacancy.profession + "\n" +
+              "📍 Объект: " + vacancy.location + "\n" +
+              "📅 Опыт: " + vacancy.experience + "\n" +
+              "🚧 Вахта: " + vacancy.shift + "\n" +
+              "📱 Контакт: " + vacancy.phone + "\n";
+          });
+
+          reply +=
+            "\n━━━━━━━━━━━━━━\n" +
+            "Всего вакансий: " + rows.length;
+        }
+      }
+
+      keyboard = {
+        keyboard: [
+          [
+            { text: "📋 Все вакансии" },
+            { text: "👷 Все анкеты" }
+          ],
+          [
+            { text: "🔎 Найти специалиста" },
+            { text: "📊 Статистика" }
+          ],
+          [
+            { text: "🔐 Админ-панель" }
+          ]
+        ],
+        resize_keyboard: true
+      };
+
+    // STATISTICS
     } else if (text === "📊 Статистика") {
 
       if (chatIdText !== String(process.env.ADMIN_ID)) {
@@ -365,9 +629,14 @@ export default async function handler(req, res) {
 
       } else {
 
-        const total = await sql`
+        const totalCandidates = await sql`
           SELECT COUNT(*)::int AS count
           FROM candidates
+        `;
+
+        const totalVacancies = await sql`
+          SELECT COUNT(*)::int AS count
+          FROM vacancies
         `;
 
         const cities = await sql`
@@ -382,9 +651,17 @@ export default async function handler(req, res) {
 
         reply =
           "📊 СТАТИСТИКА\n\n" +
-          "👷 Всего специалистов: " + total[0].count + "\n" +
-          "📍 Городов: " + cities[0].count + "\n" +
-          "👷 Профессий: " + professions[0].count;
+          "👷 Специалистов: " +
+          totalCandidates[0].count +
+          "\n" +
+          "📋 Вакансий: " +
+          totalVacancies[0].count +
+          "\n" +
+          "📍 Городов специалистов: " +
+          cities[0].count +
+          "\n" +
+          "👷 Профессий специалистов: " +
+          professions[0].count;
       }
 
       keyboard = {
@@ -394,6 +671,7 @@ export default async function handler(req, res) {
             { text: "🔎 Найти специалиста" }
           ],
           [
+            { text: "📋 Все вакансии" },
             { text: "📊 Статистика" }
           ],
           [
@@ -403,7 +681,7 @@ export default async function handler(req, res) {
         resize_keyboard: true
       };
 
-    // АДМИН-ПАНЕЛЬ КНОПКА
+    // ADMIN BUTTON
     } else if (text === "🔐 Админ-панель") {
 
       if (chatIdText !== String(process.env.ADMIN_ID)) {
@@ -412,15 +690,23 @@ export default async function handler(req, res) {
 
       } else {
 
-        const rows = await sql`
+        const candidates = await sql`
           SELECT COUNT(*)::int AS count
           FROM candidates
+        `;
+
+        const vacancies = await sql`
+          SELECT COUNT(*)::int AS count
+          FROM vacancies
         `;
 
         reply =
           "🔐 АДМИН-ПАНЕЛЬ\n\n" +
           "👷 Сохранённых анкет: " +
-          rows[0].count;
+          candidates[0].count +
+          "\n" +
+          "📋 Вакансий: " +
+          vacancies[0].count;
 
         keyboard = {
           keyboard: [
@@ -429,6 +715,7 @@ export default async function handler(req, res) {
               { text: "🔎 Найти специалиста" }
             ],
             [
+              { text: "📋 Все вакансии" },
               { text: "📊 Статистика" }
             ],
             [
@@ -439,7 +726,7 @@ export default async function handler(req, res) {
         };
       }
 
-    // ГЛАВНОЕ МЕНЮ
+    // MAIN MENU
     } else if (text === "🏠 Главное меню") {
 
       reply =
@@ -493,7 +780,7 @@ export default async function handler(req, res) {
         resize_keyboard: true
       };
 
-    // НАЧАЛО АНКЕТЫ
+    // CANDIDATE START
     } else if (text === "👷 Я ищу работу") {
 
       await sql`
@@ -534,7 +821,7 @@ export default async function handler(req, res) {
         "Шаг 1 из 6\n\n" +
         "Напишите ваше имя.";
 
-    // ШАГ 1
+    // CANDIDATE STEP 1
     } else if (session?.step === 1) {
 
       await sql`
@@ -550,7 +837,7 @@ export default async function handler(req, res) {
         "📱 Шаг 2 из 6\n\n" +
         "Напишите ваш номер телефона.";
 
-    // ШАГ 2
+    // CANDIDATE STEP 2
     } else if (session?.step === 2) {
 
       await sql`
@@ -566,7 +853,7 @@ export default async function handler(req, res) {
         "👷 Шаг 3 из 6\n\n" +
         "Какая у вас профессия?";
 
-    // ШАГ 3
+    // CANDIDATE STEP 3
     } else if (session?.step === 3) {
 
       await sql`
@@ -582,7 +869,7 @@ export default async function handler(req, res) {
         "📅 Шаг 4 из 6\n\n" +
         "Сколько лет опыта работы?";
 
-    // ШАГ 4
+    // CANDIDATE STEP 4
     } else if (session?.step === 4) {
 
       await sql`
@@ -598,7 +885,7 @@ export default async function handler(req, res) {
         "📍 Шаг 5 из 6\n\n" +
         "В каком городе вы находитесь?";
 
-    // ШАГ 5
+    // CANDIDATE STEP 5
     } else if (session?.step === 5) {
 
       await sql`
@@ -615,7 +902,7 @@ export default async function handler(req, res) {
         "Готовы работать вахтой?\n\n" +
         "Напишите: Да или Нет.";
 
-    // ШАГ 6
+    // CANDIDATE STEP 6
     } else if (session?.step === 6) {
 
       await sql`
@@ -654,7 +941,7 @@ export default async function handler(req, res) {
         "🚧 Вахта: " + text + "\n\n" +
         "Спасибо! Ваша анкета сохранена.";
 
-    // РАБОТОДАТЕЛЬ
+    // EMPLOYER
     } else if (text === "🏢 Я работодатель") {
 
       reply =
@@ -662,21 +949,14 @@ export default async function handler(req, res) {
         "Для размещения вакансии нажмите:\n" +
         "📋 Разместить вакансию";
 
-    // ПОИСК РАБОТЫ
+    // JOB SEARCH
     } else if (text === "🔎 Найти работу") {
 
       reply =
         "🔎 ПОИСК РАБОТЫ\n\n" +
         "Напишите профессию, которая вас интересует.";
 
-    // РАЗМЕЩЕНИЕ ВАКАНСИИ
-    } else if (text === "📋 Разместить вакансию") {
-
-      reply =
-        "📋 РАЗМЕЩЕНИЕ ВАКАНСИИ\n\n" +
-        "Напишите название вакансии и город/объект.";
-
-    // АДМИНИСТРАТОР
+    // ADMIN CONTACT
     } else if (text === "📞 Связаться с администратором") {
 
       reply =
