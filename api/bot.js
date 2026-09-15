@@ -326,7 +326,8 @@ async function showEmployerCabinet(chatId) {
 🟡 Рассматривать кандидатов
 ✅ Принимать
 ❌ Отказывать
-🔒 Закрывать вакансии
+✏️ Редактировать вакансии
+🔒 Архивировать вакансии
 
 Выберите действие:`,
     employerKeyboard
@@ -417,6 +418,7 @@ async function showAllCandidates(chatId) {
   rows.forEach((row, index) => {
     text += `━━━━━━━━━━━━━━
 👤 №${index + 1}
+🆔 ID: ${row.id}
 👤 Имя: ${row.name}
 📱 Телефон: ${row.phone}
 👷 Профессия: ${row.profession}
@@ -463,10 +465,10 @@ async function showAllVacancies(chatId) {
 
   let text = "📋 ВСЕ ВАКАНСИИ\n\n";
 
-  rows.forEach((row, index) => {
+  rows.forEach((row) => {
     text += `━━━━━━━━━━━━━━
-📋 ВАКАНСИЯ №${index + 1}
-🆔 ID: ${row.id}
+📋 ВАКАНСИЯ №${row.id}
+
 📋 Название: ${row.title}
 👷 Профессия: ${row.profession}
 📍 Город / объект: ${row.location}
@@ -475,12 +477,13 @@ async function showAllVacancies(chatId) {
 📋 Условия: ${row.conditions || "Не указаны"}
 🚧 Вахта: ${row.shift || "Не указано"}
 📱 Контакт: ${row.phone || "Не указан"}
-📢 Статус: ${
+
+📊 Статус: ${
       row.closed
         ? "🔒 Закрыта"
         : row.published
-        ? "Опубликована"
-        : "Не опубликована"
+        ? "🟢 Опубликована"
+        : "🟡 На проверке"
     }
 `;
   });
@@ -676,9 +679,6 @@ async function showAllApplications(chatId) {
   );
 
   for (const row of rows) {
-    const statusText =
-      getApplicationStatusText(row.status);
-
     await tg("sendMessage", {
       chat_id: chatId,
 
@@ -689,7 +689,7 @@ async function showAllApplications(chatId) {
 📋 ${row.vacancy_title || "Вакансия не найдена"}
 📍 ${row.vacancy_location || "Не указан"}
 
-${statusText}`,
+${getApplicationStatusText(row.status)}`,
 
       reply_markup: {
         inline_keyboard: [
@@ -750,9 +750,6 @@ async function showApplicationCard(
 
   const row = rows[0];
 
-  const statusText =
-    getApplicationStatusText(row.status);
-
   const text = `📩 КАРТОЧКА ОТКЛИКА №${row.id}
 
 ━━━━━━━━━━━━━━
@@ -795,7 +792,7 @@ ${row.employer_phone || "Не указан"}
 ━━━━━━━━━━━━━━
 
 📊 СТАТУС
-${statusText}`;
+${getApplicationStatusText(row.status)}`;
 
   await tg("sendMessage", {
     chat_id: chatId,
@@ -879,7 +876,10 @@ async function showVacanciesForPublishing(chatId) {
   );
 
   for (const row of rows) {
-    const text = `📋 ${row.title}
+    await tg("sendMessage", {
+      chat_id: chatId,
+
+      text: `📋 ${row.title}
 
 👷 Профессия: ${row.profession}
 📍 ${row.location}
@@ -889,12 +889,7 @@ async function showVacanciesForPublishing(chatId) {
 🚧 Вахта: ${row.shift || "Не указано"}
 📱 ${row.phone || "Не указан"}
 
-🆔 ID вакансии: ${row.id}`;
-
-    await tg("sendMessage", {
-      chat_id: chatId,
-
-      text,
+🆔 ID вакансии: ${row.id}`,
 
       reply_markup: {
         inline_keyboard: [
@@ -1079,7 +1074,7 @@ ${CHANNEL_USERNAME}
 }
 
 // =====================================================
-// EMPLOYER CABINET
+// EMPLOYER — MY VACANCIES
 // =====================================================
 
 async function showMyVacancies(chatId) {
@@ -1117,17 +1112,15 @@ async function showMyVacancies(chatId) {
     let status = "🟡 На проверке";
 
     if (row.closed) {
-      status = "🔒 Закрыта";
+      status = "🔒 В архиве";
     } else if (row.published) {
       status = "🟢 Опубликована";
     }
 
-    await tg(
-      "sendMessage",
-      {
-        chat_id: chatId,
+    await tg("sendMessage", {
+      chat_id: chatId,
 
-        text: `📋 ${row.title}
+      text: `📋 ${row.title}
 
 👷 ${row.profession}
 📍 ${row.location}
@@ -1139,24 +1132,23 @@ ${status}
 
 🆔 Вакансия №${row.id}`,
 
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "📂 Открыть вакансию",
-                callback_data:
-                  `employer_vacancy:${row.id}`,
-              },
-            ],
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "📂 Открыть вакансию",
+              callback_data:
+                `employer_vacancy:${row.id}`,
+            },
           ],
-        },
-      }
-    );
+        ],
+      },
+    });
   }
 }
 
 // =====================================================
-// EMPLOYER VACANCY CARD
+// EMPLOYER — VACANCY CARD
 // =====================================================
 
 async function showEmployerVacancyCard(
@@ -1185,7 +1177,7 @@ async function showEmployerVacancyCard(
   let status = "🟡 На проверке";
 
   if (row.closed) {
-    status = "🔒 Закрыта";
+    status = "🔒 В архиве";
   } else if (row.published) {
     status = "🟢 Опубликована";
   }
@@ -1230,50 +1222,414 @@ ${status}
 📩 Откликов:
 ${applications[0].count}`;
 
-  const buttons = [];
+  const buttons = [
+    [
+      {
+        text: "✏️ Редактировать",
+        callback_data:
+          `edit_vacancy:${row.id}`,
+      },
+    ],
+  ];
+
+  buttons.push([
+    {
+      text: "📩 Отклики",
+      callback_data:
+        `employer_vacancy_applications:${row.id}`,
+    },
+  ]);
 
   if (!row.closed) {
     buttons.push([
       {
-        text: "📩 Отклики",
-        callback_data:
-          `employer_vacancy_applications:${row.id}`,
-      },
-    ]);
-
-    buttons.push([
-      {
-        text: "🔒 Закрыть вакансию",
+        text: "🔒 Архивировать",
         callback_data:
           `employer_close_vacancy:${row.id}`,
       },
     ]);
-  } else {
-    buttons.push([
-      {
-        text: "📩 Отклики",
-        callback_data:
-          `employer_vacancy_applications:${row.id}`,
-      },
-    ]);
   }
 
-  await tg(
-    "sendMessage",
-    {
-      chat_id: chatId,
+  await tg("sendMessage", {
+    chat_id: chatId,
 
-      text,
+    text,
 
-      reply_markup: {
-        inline_keyboard: buttons,
-      },
-    }
+    reply_markup: {
+      inline_keyboard: buttons,
+    },
+  });
+}
+
+// =====================================================
+// EMPLOYER — EDIT VACANCY MENU
+// =====================================================
+
+async function showEditVacancyMenu(
+  chatId,
+  vacancyId
+) {
+  const rows = await sql`
+    SELECT *
+    FROM vacancies
+    WHERE id = ${vacancyId}
+      AND chat_id = ${String(chatId)}
+    LIMIT 1
+  `;
+
+  if (rows.length === 0) {
+    await sendMessage(
+      chatId,
+      "⛔ Вакансия не найдена или у вас нет доступа."
+    );
+
+    return;
+  }
+
+  const row = rows[0];
+
+  if (row.closed) {
+    await sendMessage(
+      chatId,
+      "🔒 Архивную вакансию редактировать нельзя."
+    );
+
+    return;
+  }
+
+  await tg("sendMessage", {
+    chat_id: chatId,
+
+    text: `✏️ РЕДАКТИРОВАНИЕ ВАКАНСИИ №${row.id}
+
+📋 ${row.title}
+
+Выберите, что изменить:`,
+
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: "📋 Название",
+            callback_data:
+              `edit_field:${row.id}:title`,
+          },
+        ],
+
+        [
+          {
+            text: "👷 Профессия",
+            callback_data:
+              `edit_field:${row.id}:profession`,
+          },
+        ],
+
+        [
+          {
+            text: "📍 Город / объект",
+            callback_data:
+              `edit_field:${row.id}:location`,
+          },
+        ],
+
+        [
+          {
+            text: "📅 Требуемый опыт",
+            callback_data:
+              `edit_field:${row.id}:experience`,
+          },
+        ],
+
+        [
+          {
+            text: "💰 Оплата",
+            callback_data:
+              `edit_field:${row.id}:payment`,
+          },
+        ],
+
+        [
+          {
+            text: "📋 Условия",
+            callback_data:
+              `edit_field:${row.id}:conditions`,
+          },
+        ],
+
+        [
+          {
+            text: "🚧 Вахта",
+            callback_data:
+              `edit_field:${row.id}:shift`,
+          },
+        ],
+
+        [
+          {
+            text: "📱 Контакт",
+            callback_data:
+              `edit_field:${row.id}:phone`,
+          },
+        ],
+
+        [
+          {
+            text: "⬅️ Назад",
+            callback_data:
+              `employer_vacancy:${row.id}`,
+          },
+        ],
+      ],
+    },
+  });
+}
+
+// =====================================================
+// EMPLOYER — START EDIT FIELD
+// =====================================================
+
+async function startEditField(
+  chatId,
+  vacancyId,
+  field
+) {
+  const allowedFields = [
+    "title",
+    "profession",
+    "location",
+    "experience",
+    "payment",
+    "conditions",
+    "shift",
+    "phone",
+  ];
+
+  if (!allowedFields.includes(field)) {
+    return;
+  }
+
+  const rows = await sql`
+    SELECT *
+    FROM vacancies
+    WHERE id = ${vacancyId}
+      AND chat_id = ${String(chatId)}
+    LIMIT 1
+  `;
+
+  if (rows.length === 0) {
+    await sendMessage(
+      chatId,
+      "⛔ Вакансия не найдена."
+    );
+
+    return;
+  }
+
+  if (rows[0].closed) {
+    await sendMessage(
+      chatId,
+      "🔒 Архивную вакансию редактировать нельзя."
+    );
+
+    return;
+  }
+
+  const fieldNames = {
+    title: "название вакансии",
+    profession: "профессию",
+    location: "город или объект",
+    experience: "требуемый опыт",
+    payment: "оплату",
+    conditions: "условия работы",
+    shift: "условия вахты: Да или Нет",
+    phone: "контактный номер",
+  };
+
+  await setSession(chatId, {
+    step: 401,
+    application_vacancy_id: vacancyId,
+    shift: field,
+  });
+
+  await sendMessage(
+    chatId,
+    `✏️ РЕДАКТИРОВАНИЕ
+
+Введите новое значение для поля:
+
+<b>${fieldNames[field]}</b>
+
+Новое значение отправьте одним сообщением.`
+      .replace("<b>", "")
+      .replace("</b>", "")
   );
 }
 
 // =====================================================
-// EMPLOYER APPLICATIONS
+// EMPLOYER — HANDLE EDIT
+// =====================================================
+
+async function handleEditVacancy(
+  chatId,
+  text,
+  session
+) {
+  if (session.step !== 401) {
+    return;
+  }
+
+  const vacancyId =
+    session.application_vacancy_id;
+
+  const field =
+    session.shift;
+
+  const allowedFields = [
+    "title",
+    "profession",
+    "location",
+    "experience",
+    "payment",
+    "conditions",
+    "shift",
+    "phone",
+  ];
+
+  if (
+    !vacancyId ||
+    !allowedFields.includes(field)
+  ) {
+    await clearSession(chatId);
+
+    await sendMessage(
+      chatId,
+      "❌ Не удалось определить поле для изменения."
+    );
+
+    await showEmployerCabinet(chatId);
+
+    return;
+  }
+
+  const rows = await sql`
+    SELECT *
+    FROM vacancies
+    WHERE id = ${vacancyId}
+      AND chat_id = ${String(chatId)}
+    LIMIT 1
+  `;
+
+  if (rows.length === 0) {
+    await clearSession(chatId);
+
+    await sendMessage(
+      chatId,
+      "⛔ Вакансия не найдена."
+    );
+
+    return;
+  }
+
+  if (rows[0].closed) {
+    await clearSession(chatId);
+
+    await sendMessage(
+      chatId,
+      "🔒 Архивную вакансию редактировать нельзя."
+    );
+
+    return;
+  }
+
+  if (field === "title") {
+    await sql`
+      UPDATE vacancies
+      SET title = ${text}
+      WHERE id = ${vacancyId}
+        AND chat_id = ${String(chatId)}
+    `;
+  }
+
+  if (field === "profession") {
+    await sql`
+      UPDATE vacancies
+      SET profession = ${text}
+      WHERE id = ${vacancyId}
+        AND chat_id = ${String(chatId)}
+    `;
+  }
+
+  if (field === "location") {
+    await sql`
+      UPDATE vacancies
+      SET location = ${text}
+      WHERE id = ${vacancyId}
+        AND chat_id = ${String(chatId)}
+    `;
+  }
+
+  if (field === "experience") {
+    await sql`
+      UPDATE vacancies
+      SET experience = ${text}
+      WHERE id = ${vacancyId}
+        AND chat_id = ${String(chatId)}
+    `;
+  }
+
+  if (field === "payment") {
+    await sql`
+      UPDATE vacancies
+      SET payment = ${text}
+      WHERE id = ${vacancyId}
+        AND chat_id = ${String(chatId)}
+    `;
+  }
+
+  if (field === "conditions") {
+    await sql`
+      UPDATE vacancies
+      SET conditions = ${text}
+      WHERE id = ${vacancyId}
+        AND chat_id = ${String(chatId)}
+    `;
+  }
+
+  if (field === "shift") {
+    await sql`
+      UPDATE vacancies
+      SET shift = ${text}
+      WHERE id = ${vacancyId}
+        AND chat_id = ${String(chatId)}
+    `;
+  }
+
+  if (field === "phone") {
+    await sql`
+      UPDATE vacancies
+      SET phone = ${text}
+      WHERE id = ${vacancyId}
+        AND chat_id = ${String(chatId)}
+    `;
+  }
+
+  await clearSession(chatId);
+
+  await sendMessage(
+    chatId,
+    `✅ ИЗМЕНЕНИЯ СОХРАНЕНЫ!
+
+Вакансия №${vacancyId} успешно обновлена.`
+  );
+
+  await showEmployerVacancyCard(
+    chatId,
+    vacancyId
+  );
+}
+
+// =====================================================
+// EMPLOYER — APPLICATIONS
 // =====================================================
 
 async function showEmployerApplications(
@@ -1314,37 +1670,31 @@ async function showEmployerApplications(
   );
 
   for (const row of rows) {
-    const statusText =
-      getApplicationStatusText(row.status);
+    await tg("sendMessage", {
+      chat_id: chatId,
 
-    await tg(
-      "sendMessage",
-      {
-        chat_id: chatId,
-
-        text: `👤 ${row.name}
+      text: `👤 ${row.name}
 
 📋 ${row.vacancy_title}
 👷 ${row.vacancy_profession}
 📍 ${row.vacancy_location}
 
-${statusText}
+${getApplicationStatusText(row.status)}
 
 🆔 Отклик №${row.id}`,
 
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "👤 Карточка кандидата",
-                callback_data:
-                  `employer_application_view:${row.id}`,
-              },
-            ],
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "👤 Карточка кандидата",
+              callback_data:
+                `employer_application_view:${row.id}`,
+            },
           ],
-        },
-      }
-    );
+        ],
+      },
+    });
   }
 }
 
@@ -1405,41 +1755,36 @@ async function showEmployerVacancyApplications(
   );
 
   for (const row of rows) {
-    await tg(
-      "sendMessage",
-      {
-        chat_id: chatId,
+    await tg("sendMessage", {
+      chat_id: chatId,
 
-        text: `👤 ${row.name}
+      text: `👤 ${row.name}
 
 📱 ${row.phone}
 📅 Опыт: ${row.experience}
 
-${getApplicationStatusText(
-          row.status
-        )}
+${getApplicationStatusText(row.status)}
 
 🆔 Отклик №${row.id}`,
 
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text:
-                  "👤 Открыть карточку",
-                callback_data:
-                  `employer_application_view:${row.id}`,
-              },
-            ],
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text:
+                "👤 Открыть карточку",
+              callback_data:
+                `employer_application_view:${row.id}`,
+            },
           ],
-        },
-      }
-    );
+        ],
+      },
+    });
   }
 }
 
 // =====================================================
-// EMPLOYER — CANDIDATE CARD
+// EMPLOYER — APPLICATION CARD
 // =====================================================
 
 async function showEmployerApplicationCard(
@@ -1477,9 +1822,6 @@ async function showEmployerApplicationCard(
 
   const row = rows[0];
 
-  const statusText =
-    getApplicationStatusText(row.status);
-
   const text = `👤 КАРТОЧКА КАНДИДАТА
 
 ━━━━━━━━━━━━━━
@@ -1516,60 +1858,57 @@ ${row.vacancy_location}
 
 📊 СТАТУС:
 
-${statusText}
+${getApplicationStatusText(row.status)}
 
 🆔 Отклик №${row.id}`;
 
-  await tg(
-    "sendMessage",
-    {
-      chat_id: chatId,
+  await tg("sendMessage", {
+    chat_id: chatId,
 
-      text,
+    text,
 
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "🟡 На рассмотрении",
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: "🟡 На рассмотрении",
 
-              callback_data:
-                `employer_application_status:${row.id}:review`,
-            },
-          ],
-
-          [
-            {
-              text: "✅ Принят",
-
-              callback_data:
-                `employer_application_status:${row.id}:accepted`,
-            },
-
-            {
-              text: "❌ Отказ",
-
-              callback_data:
-                `employer_application_status:${row.id}:rejected`,
-            },
-          ],
-
-          [
-            {
-              text: "🆕 Новый",
-
-              callback_data:
-                `employer_application_status:${row.id}:new`,
-            },
-          ],
+            callback_data:
+              `employer_application_status:${row.id}:review`,
+          },
         ],
-      },
-    }
-  );
+
+        [
+          {
+            text: "✅ Принят",
+
+            callback_data:
+              `employer_application_status:${row.id}:accepted`,
+          },
+
+          {
+            text: "❌ Отказ",
+
+            callback_data:
+              `employer_application_status:${row.id}:rejected`,
+          },
+        ],
+
+        [
+          {
+            text: "🆕 Новый",
+
+            callback_data:
+              `employer_application_status:${row.id}:new`,
+          },
+        ],
+      ],
+    },
+  });
 }
 
 // =====================================================
-// EMPLOYER — CLOSE VACANCY
+// EMPLOYER — ARCHIVE VACANCY
 // =====================================================
 
 async function closeEmployerVacancy(
@@ -1598,7 +1937,7 @@ async function closeEmployerVacancy(
   if (vacancy.closed) {
     await sendMessage(
       chatId,
-      "🔒 Эта вакансия уже закрыта."
+      "🔒 Эта вакансия уже находится в архиве."
     );
 
     return;
@@ -1613,13 +1952,13 @@ async function closeEmployerVacancy(
 
   await sendMessage(
     chatId,
-    `🔒 ВАКАНСИЯ ЗАКРЫТА
+    `🔒 ВАКАНСИЯ АРХИВИРОВАНА
 
 📋 ${vacancy.title}
 
-Новые отклики на эту вакансию больше не должны приниматься.
+Новые отклики на эту вакансию больше не принимаются.
 
-Вакансия сохранена в вашем кабинете.`
+История вакансии и откликов сохранена.`
   );
 
   await showEmployerCabinet(chatId);
@@ -1679,12 +2018,21 @@ async function startVacancy(chatId) {
 
 async function startSearch(chatId) {
   await setSession(chatId, {
-    step: 100,
+    step: 110,
+    name: null,
+    phone: null,
+    profession: null,
+    experience: null,
+    city: null,
+    shift: null,
+    application_vacancy_id: null,
   });
 
   await sendMessage(
     chatId,
     `🔎 ПОИСК СПЕЦИАЛИСТА
+
+Шаг 1 из 4.
 
 Введите профессию.
 
@@ -1692,7 +2040,319 @@ async function startSearch(chatId) {
 Монтажник
 Сварщик
 Моляр
-Изолировщик`
+Изолировщик
+
+Или напишите:
+Любой`
+  );
+}
+
+// =====================================================
+// SEARCH — HANDLE
+// =====================================================
+
+async function handleSearch(
+  chatId,
+  text,
+  session
+) {
+  if (session.step === 110) {
+    await setSession(chatId, {
+      ...session,
+      step: 111,
+      profession:
+        text.toLowerCase() === "любой"
+          ? ""
+          : text,
+    });
+
+    await sendMessage(
+      chatId,
+      `🔎 ШАГ 2 ИЗ 4
+
+Введите город.
+
+Например:
+Махачкала
+Самара
+Москва
+
+Или:
+Любой`
+    );
+
+    return;
+  }
+
+  if (session.step === 111) {
+    await setSession(chatId, {
+      ...session,
+      step: 112,
+      city:
+        text.toLowerCase() === "любой"
+          ? ""
+          : text,
+    });
+
+    await sendMessage(
+      chatId,
+      `🔎 ШАГ 3 ИЗ 4
+
+Какой минимальный опыт нужен?
+
+Например:
+5
+
+Если опыт не важен:
+Любой`
+    );
+
+    return;
+  }
+
+  if (session.step === 112) {
+    await setSession(chatId, {
+      ...session,
+      step: 113,
+      experience:
+        text.toLowerCase() === "любой"
+          ? ""
+          : text,
+    });
+
+    await sendMessage(
+      chatId,
+      `🔎 ШАГ 4 ИЗ 4
+
+Готовность к вахте?
+
+Ответьте:
+
+Да
+Нет
+Любой`
+    );
+
+    return;
+  }
+
+  if (session.step === 113) {
+    const shiftFilter =
+      text.toLowerCase() === "любой"
+        ? ""
+        : text;
+
+    const profession =
+      session.profession || "";
+
+    const city =
+      session.city || "";
+
+    const experience =
+      session.experience || "";
+
+    const searchProfession =
+      profession
+        ? `%${profession}%`
+        : "%";
+
+    const searchCity =
+      city
+        ? `%${city}%`
+        : "%";
+
+    const experienceNumber =
+      parseInt(
+        String(experience).replace(
+          /[^0-9]/g,
+          ""
+        ),
+        10
+      );
+
+    let rows;
+
+    if (
+      Number.isFinite(experienceNumber) &&
+      experienceNumber > 0 &&
+      shiftFilter
+    ) {
+      const searchShift =
+        `%${shiftFilter}%`;
+
+      rows = await sql`
+        SELECT *
+        FROM candidates
+        WHERE profession ILIKE ${searchProfession}
+          AND city ILIKE ${searchCity}
+          AND shift ILIKE ${searchShift}
+          AND experience ~ '[0-9]'
+          AND CAST(
+            substring(experience from '[0-9]+')
+            AS INTEGER
+          ) >= ${experienceNumber}
+        ORDER BY id DESC
+      `;
+    } else if (
+      Number.isFinite(experienceNumber) &&
+      experienceNumber > 0
+    ) {
+      rows = await sql`
+        SELECT *
+        FROM candidates
+        WHERE profession ILIKE ${searchProfession}
+          AND city ILIKE ${searchCity}
+          AND experience ~ '[0-9]'
+          AND CAST(
+            substring(experience from '[0-9]+')
+            AS INTEGER
+          ) >= ${experienceNumber}
+        ORDER BY id DESC
+      `;
+    } else if (shiftFilter) {
+      const searchShift =
+        `%${shiftFilter}%`;
+
+      rows = await sql`
+        SELECT *
+        FROM candidates
+        WHERE profession ILIKE ${searchProfession}
+          AND city ILIKE ${searchCity}
+          AND shift ILIKE ${searchShift}
+        ORDER BY id DESC
+      `;
+    } else {
+      rows = await sql`
+        SELECT *
+        FROM candidates
+        WHERE profession ILIKE ${searchProfession}
+          AND city ILIKE ${searchCity}
+        ORDER BY id DESC
+      `;
+    }
+
+    await clearSession(chatId);
+
+    if (rows.length === 0) {
+      await sendMessage(
+        chatId,
+        `🔎 СПЕЦИАЛИСТЫ НЕ НАЙДЕНЫ
+
+По заданным параметрам подходящих специалистов нет.
+
+Попробуйте изменить параметры поиска.`
+      );
+
+      return;
+    }
+
+    await sendMessage(
+      chatId,
+      `🔎 РЕЗУЛЬТАТ ПОИСКА
+
+Найдено специалистов:
+${rows.length}
+
+Выберите кандидата:`
+    );
+
+    for (const row of rows) {
+      await tg("sendMessage", {
+        chat_id: chatId,
+
+        text: `👤 ${row.name}
+
+👷 ${row.profession}
+📅 Опыт: ${row.experience}
+📍 ${row.city}
+🚧 Вахта: ${row.shift}
+
+🆔 Специалист №${row.id}`,
+
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text:
+                  "👤 Открыть карточку",
+                callback_data:
+                  `candidate_view:${row.id}`,
+              },
+            ],
+          ],
+        },
+      });
+    }
+
+    return;
+  }
+}
+
+// =====================================================
+// CANDIDATE CARD — ADMIN
+// =====================================================
+
+async function showCandidateCard(
+  chatId,
+  candidateId
+) {
+  if (String(chatId) !== ADMIN_ID) {
+    await sendMessage(
+      chatId,
+      "⛔ Доступ запрещён."
+    );
+
+    return;
+  }
+
+  const rows = await sql`
+    SELECT *
+    FROM candidates
+    WHERE id = ${candidateId}
+    LIMIT 1
+  `;
+
+  if (rows.length === 0) {
+    await sendMessage(
+      chatId,
+      "❌ Специалист не найден."
+    );
+
+    return;
+  }
+
+  const row = rows[0];
+
+  await sendMessage(
+    chatId,
+    `👤 КАРТОЧКА СПЕЦИАЛИСТА №${row.id}
+
+━━━━━━━━━━━━━━
+
+👤 Имя:
+${row.name}
+
+👷 Профессия:
+${row.profession}
+
+📅 Опыт:
+${row.experience}
+
+📍 Город:
+${row.city}
+
+🚧 Вахта:
+${row.shift}
+
+📱 Телефон:
+${row.phone}
+
+🆔 Telegram ID:
+${row.chat_id}
+
+━━━━━━━━━━━━━━
+
+Специалист находится в базе «РАБОТА | ВАХТА».`
   );
 }
 
@@ -1725,7 +2385,6 @@ async function startApplication(
 
   const vacancy = rows[0];
 
-  // Проверяем повторный отклик
   const existingApplication = await sql`
     SELECT id
     FROM applications
@@ -1851,7 +2510,7 @@ ${vacancies[0].count}
 📢 Опубликовано вакансий:
 ${published[0].count}
 
-🔒 Закрыто вакансий:
+🔒 Архивировано вакансий:
 ${closedVacancies[0].count}
 
 📩 Всего откликов:
@@ -2460,55 +3119,6 @@ ${phone}
 }
 
 // =====================================================
-// SEARCH
-// =====================================================
-
-async function handleSearch(
-  chatId,
-  text
-) {
-  const search = `%${text}%`;
-
-  const rows = await sql`
-    SELECT *
-    FROM candidates
-    WHERE profession ILIKE ${search}
-    ORDER BY id DESC
-  `;
-
-  if (rows.length === 0) {
-    await sendMessage(
-      chatId,
-      `🔎 По запросу «${text}» специалисты не найдены.`
-    );
-
-    return;
-  }
-
-  let result = `🔎 РЕЗУЛЬТАТ ПОИСКА
-
-Найдено специалистов: ${rows.length}
-`;
-
-  rows.forEach((row, index) => {
-    result += `━━━━━━━━━━━━━━
-👤 №${index + 1}
-👤 Имя: ${row.name}
-📱 Телефон: ${row.phone}
-👷 Профессия: ${row.profession}
-📅 Опыт: ${row.experience}
-📍 Город: ${row.city}
-🚧 Вахта: ${row.shift}
-`;
-  });
-
-  await sendMessage(
-    chatId,
-    result
-  );
-}
-
-// =====================================================
 // CALLBACKS
 // =====================================================
 
@@ -2535,10 +3145,8 @@ async function handleCallbackQuery(
         {
           callback_query_id:
             callbackId,
-
           text:
             "⛔ Доступ запрещён.",
-
           show_alert: true,
         }
       );
@@ -2576,10 +3184,8 @@ async function handleCallbackQuery(
         {
           callback_query_id:
             callbackId,
-
           text:
             "⛔ Доступ запрещён.",
-
           show_alert: true,
         }
       );
@@ -2621,10 +3227,8 @@ async function handleCallbackQuery(
         {
           callback_query_id:
             callbackId,
-
           text:
             "⛔ Доступ запрещён.",
-
           show_alert: true,
         }
       );
@@ -2658,10 +3262,8 @@ async function handleCallbackQuery(
         {
           callback_query_id:
             callbackId,
-
           text:
             "❌ Недопустимый статус.",
-
           show_alert: true,
         }
       );
@@ -2685,10 +3287,8 @@ async function handleCallbackQuery(
         {
           callback_query_id:
             callbackId,
-
           text:
             "❌ Отклик не найден.",
-
           show_alert: true,
         }
       );
@@ -2705,19 +3305,13 @@ async function handleCallbackQuery(
       WHERE id = ${applicationId}
     `;
 
-    const statusText =
-      getApplicationStatusText(
-        newStatus
-      );
-
     await tg(
       "answerCallbackQuery",
       {
         callback_query_id:
           callbackId,
-
         text:
-          `Статус изменён: ${statusText}`,
+          `Статус изменён: ${getApplicationStatusText(newStatus)}`,
       }
     );
 
@@ -2733,6 +3327,49 @@ async function handleCallbackQuery(
     await showApplicationCard(
       fromId,
       applicationId
+    );
+
+    return;
+  }
+
+  // ===================================================
+  // ADMIN — CANDIDATE CARD
+  // ===================================================
+
+  if (
+    data.startsWith(
+      "candidate_view:"
+    )
+  ) {
+    if (fromId !== ADMIN_ID) {
+      await tg(
+        "answerCallbackQuery",
+        {
+          callback_query_id:
+            callbackId,
+          text:
+            "⛔ Доступ запрещён.",
+          show_alert: true,
+        }
+      );
+
+      return;
+    }
+
+    await tg(
+      "answerCallbackQuery",
+      {
+        callback_query_id:
+          callbackId,
+      }
+    );
+
+    const candidateId =
+      data.split(":")[1];
+
+    await showCandidateCard(
+      fromId,
+      candidateId
     );
 
     return;
@@ -2761,6 +3398,69 @@ async function handleCallbackQuery(
     await showEmployerVacancyCard(
       fromId,
       vacancyId
+    );
+
+    return;
+  }
+
+  // ===================================================
+  // EMPLOYER — EDIT VACANCY
+  // ===================================================
+
+  if (
+    data.startsWith(
+      "edit_vacancy:"
+    )
+  ) {
+    await tg(
+      "answerCallbackQuery",
+      {
+        callback_query_id:
+          callbackId,
+      }
+    );
+
+    const vacancyId =
+      data.split(":")[1];
+
+    await showEditVacancyMenu(
+      fromId,
+      vacancyId
+    );
+
+    return;
+  }
+
+  // ===================================================
+  // EMPLOYER — EDIT FIELD
+  // ===================================================
+
+  if (
+    data.startsWith(
+      "edit_field:"
+    )
+  ) {
+    await tg(
+      "answerCallbackQuery",
+      {
+        callback_query_id:
+          callbackId,
+      }
+    );
+
+    const parts =
+      data.split(":");
+
+    const vacancyId =
+      parts[1];
+
+    const field =
+      parts[2];
+
+    await startEditField(
+      fromId,
+      vacancyId,
+      field
     );
 
     return;
@@ -2857,10 +3557,8 @@ async function handleCallbackQuery(
         {
           callback_query_id:
             callbackId,
-
           text:
             "❌ Недопустимый статус.",
-
           show_alert: true,
         }
       );
@@ -2868,8 +3566,6 @@ async function handleCallbackQuery(
       return;
     }
 
-    // Проверяем, что отклик относится
-    // именно к вакансии этого работодателя
     const applicationRows =
       await sql`
         SELECT
@@ -2899,10 +3595,8 @@ async function handleCallbackQuery(
         {
           callback_query_id:
             callbackId,
-
           text:
             "⛔ У вас нет доступа к этому отклику.",
-
           show_alert: true,
         }
       );
@@ -2919,19 +3613,13 @@ async function handleCallbackQuery(
       WHERE id = ${applicationId}
     `;
 
-    const statusText =
-      getApplicationStatusText(
-        newStatus
-      );
-
     await tg(
       "answerCallbackQuery",
       {
         callback_query_id:
           callbackId,
-
         text:
-          `Статус изменён: ${statusText}`,
+          `Статус изменён: ${getApplicationStatusText(newStatus)}`,
       }
     );
 
@@ -2953,7 +3641,7 @@ async function handleCallbackQuery(
   }
 
   // ===================================================
-  // EMPLOYER — CLOSE VACANCY
+  // EMPLOYER — ARCHIVE VACANCY
   // ===================================================
 
   if (
@@ -2978,10 +3666,8 @@ async function handleCallbackQuery(
         {
           callback_query_id:
             callbackId,
-
           text:
             "⛔ Эта вакансия вам не принадлежит.",
-
           show_alert: true,
         }
       );
@@ -2994,9 +3680,8 @@ async function handleCallbackQuery(
       {
         callback_query_id:
           callbackId,
-
         text:
-          "🔒 Вакансия закрывается...",
+          "🔒 Вакансия архивируется...",
       }
     );
 
@@ -3491,19 +4176,37 @@ ${chatId}`
 
     if (session) {
       // ------------------------------------------------
+      // EDIT VACANCY
+      // ------------------------------------------------
+
+      if (
+        session.step === 401
+      ) {
+        await handleEditVacancy(
+          chatId,
+          text,
+          session
+        );
+
+        return res
+          .status(200)
+          .json({
+            ok: true,
+          });
+      }
+
+      // ------------------------------------------------
       // SEARCH
       // ------------------------------------------------
 
       if (
-        session.step === 100
+        session.step >= 110 &&
+        session.step <= 113
       ) {
         await handleSearch(
           chatId,
-          text
-        );
-
-        await clearSession(
-          chatId
+          text,
+          session
         );
 
         return res
