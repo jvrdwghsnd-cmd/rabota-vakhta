@@ -142,7 +142,8 @@ export default async function handler(req, res) {
         keyboard = {
           keyboard: [
             [
-              { text: "👷 Все анкеты" }
+              { text: "👷 Все анкеты" },
+              { text: "🔎 Найти специалиста" }
             ],
             [
               { text: "📊 Статистика" }
@@ -209,7 +210,8 @@ export default async function handler(req, res) {
         keyboard = {
           keyboard: [
             [
-              { text: "👷 Все анкеты" }
+              { text: "👷 Все анкеты" },
+              { text: "🔎 Найти специалиста" }
             ],
             [
               { text: "📊 Статистика" }
@@ -221,6 +223,138 @@ export default async function handler(req, res) {
           resize_keyboard: true
         };
       }
+
+    // НАЧАЛО ПОИСКА СПЕЦИАЛИСТА
+    } else if (text === "🔎 Найти специалиста") {
+
+      if (chatIdText !== String(process.env.ADMIN_ID)) {
+
+        reply = "⛔ Доступ запрещён.";
+
+      } else {
+
+        await sql`
+          INSERT INTO bot_sessions (
+            chat_id,
+            step,
+            name,
+            phone,
+            profession,
+            experience,
+            city,
+            shift
+          )
+          VALUES (
+            ${chatIdText},
+            100,
+            '',
+            '',
+            '',
+            '',
+            '',
+            ''
+          )
+          ON CONFLICT (chat_id)
+          DO UPDATE SET
+            step = 100,
+            updated_at = NOW()
+        `;
+
+        reply =
+          "🔎 ПОИСК СПЕЦИАЛИСТА\n\n" +
+          "Введите профессию.\n\n" +
+          "Например:\n" +
+          "• Сварщик\n" +
+          "• Монтажник\n" +
+          "• Маляр\n" +
+          "• Изолировщик";
+      }
+
+      keyboard = {
+        keyboard: [
+          [
+            { text: "🔐 Админ-панель" }
+          ]
+        ],
+        resize_keyboard: true
+      };
+
+    // РЕЗУЛЬТАТ ПОИСКА
+    } else if (session?.step === 100) {
+
+      if (chatIdText !== String(process.env.ADMIN_ID)) {
+
+        reply = "⛔ Доступ запрещён.";
+
+      } else {
+
+        const searchText = text.trim();
+
+        const rows = await sql`
+          SELECT
+            id,
+            name,
+            phone,
+            profession,
+            experience,
+            city,
+            shift
+          FROM candidates
+          WHERE profession ILIKE ${"%" + searchText + "%"}
+          ORDER BY created_at DESC
+        `;
+
+        if (rows.length === 0) {
+
+          reply =
+            "🔎 РЕЗУЛЬТАТ ПОИСКА\n\n" +
+            "Специалисты по запросу «" +
+            searchText +
+            "» не найдены.";
+
+        } else {
+
+          reply =
+            "🔎 РЕЗУЛЬТАТ ПОИСКА\n\n" +
+            "Найдено специалистов: " +
+            rows.length +
+            "\n";
+
+          rows.forEach((candidate, index) => {
+
+            reply +=
+              "\n━━━━━━━━━━━━━━\n" +
+              "👤 №" + (index + 1) + "\n\n" +
+              "👤 Имя: " + candidate.name + "\n" +
+              "📱 Телефон: " + candidate.phone + "\n" +
+              "👷 Профессия: " + candidate.profession + "\n" +
+              "📅 Опыт: " + candidate.experience + "\n" +
+              "📍 Город: " + candidate.city + "\n" +
+              "🚧 Вахта: " + candidate.shift + "\n";
+          });
+        }
+
+        await sql`
+          DELETE FROM bot_sessions
+          WHERE chat_id = ${chatIdText}
+        `;
+      }
+
+      keyboard = {
+        keyboard: [
+          [
+            { text: "🔎 Найти специалиста" },
+            { text: "👷 Все анкеты" }
+          ],
+          [
+            { text: "📊 Статистика" }
+          ],
+          [
+            { text: "🔐 Админ-панель" }
+          ]
+        ],
+        resize_keyboard: true
+      };
 
     // СТАТИСТИКА
     } else if (text === "📊 Статистика") {
@@ -256,7 +390,8 @@ export default async function handler(req, res) {
       keyboard = {
         keyboard: [
           [
-            { text: "👷 Все анкеты" }
+            { text: "👷 Все анкеты" },
+            { text: "🔎 Найти специалиста" }
           ],
           [
             { text: "📊 Статистика" }
@@ -290,7 +425,8 @@ export default async function handler(req, res) {
         keyboard = {
           keyboard: [
             [
-              { text: "👷 Все анкеты" }
+              { text: "👷 Все анкеты" },
+              { text: "🔎 Найти специалиста" }
             ],
             [
               { text: "📊 Статистика" }
