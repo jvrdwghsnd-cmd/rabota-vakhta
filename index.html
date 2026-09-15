@@ -3,182 +3,290 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Работа | Вахта — Вакансии</title>
+
+  <title>РАБОТА | ВАХТА — Вакансии</title>
+  <meta
+    name="description"
+    content="Актуальные вакансии для монтажников, сварщиков, изолировщиков, маляров и других специалистов."
+  >
 
   <style>
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #101010;
-      color: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top, #202020 0%, #0c0c0c 45%, #050505 100%);
+      color: #fff;
+      min-height: 100vh;
     }
 
-    header {
-      padding: 60px 20px;
-      text-align: center;
-      background: #181818;
-      border-bottom: 1px solid #333;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 46px;
-      letter-spacing: 2px;
-    }
-
-    header p {
-      margin-top: 15px;
-      color: #aaa;
-      font-size: 18px;
+    a {
+      color: inherit;
+      text-decoration: none;
     }
 
     .container {
-      width: 100%;
-      max-width: 1050px;
-      margin: auto;
-      padding: 45px 20px;
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      padding: 28px 0 20px;
+      border-bottom: 1px solid #292929;
+    }
+
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+    }
+
+    .logo span {
+      color: #aaa;
+    }
+
+    .telegram {
+      border: 1px solid #444;
+      padding: 11px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      transition: 0.2s;
+    }
+
+    .telegram:hover {
+      background: #fff;
+      color: #000;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 65px 0 45px;
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 68px);
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -2px;
+      margin-bottom: 18px;
+    }
+
+    .hero p {
+      color: #aaa;
+      font-size: 17px;
+      max-width: 650px;
+      margin: 0 auto;
+      line-height: 1.6;
     }
 
     .search-box {
-      background: #191919;
-      border: 1px solid #333;
-      padding: 25px;
-      border-radius: 14px;
-      margin-bottom: 45px;
+      margin: 35px auto 0;
+      max-width: 760px;
+      position: relative;
     }
 
-    .search-box h2 {
-      margin-top: 0;
-      font-size: 25px;
-    }
-
-    .search-row {
-      display: flex;
-      gap: 10px;
-    }
-
-    #searchInput {
-      flex: 1;
-      padding: 16px;
-      border-radius: 8px;
-      border: 1px solid #444;
-      background: #101010;
-      color: white;
-      font-size: 16px;
+    .search-box input {
+      width: 100%;
+      padding: 18px 22px;
+      border-radius: 10px;
+      border: 1px solid #383838;
+      background: #111;
+      color: #fff;
       outline: none;
+      font-size: 16px;
     }
 
-    #searchButton {
-      padding: 16px 25px;
-      border: none;
-      border-radius: 8px;
-      background: white;
-      color: #111;
-      font-weight: bold;
-      cursor: pointer;
+    .search-box input:focus {
+      border-color: #777;
     }
 
-    #searchButton:hover {
-      opacity: 0.85;
+    .search-info {
+      margin-top: 12px;
+      color: #777;
+      font-size: 13px;
     }
 
-    #resultCount {
-      margin-top: 15px;
-      color: #999;
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 22px;
     }
 
-    h2.section-title {
-      text-align: center;
-      margin-bottom: 30px;
-      font-size: 32px;
+    .section-head h2 {
+      font-size: 26px;
+      font-weight: 800;
+    }
+
+    .count {
+      color: #888;
+      font-size: 14px;
     }
 
     .jobs {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      padding-bottom: 60px;
     }
 
     .job {
-      background: #191919;
-      border: 1px solid #333;
-      border-radius: 12px;
-      padding: 25px;
+      background: linear-gradient(145deg, #171717, #0e0e0e);
+      border: 1px solid #292929;
+      border-radius: 14px;
+      padding: 24px;
+      transition: transform 0.2s, border-color 0.2s;
     }
 
-    .job h3 {
-      margin-top: 0;
+    .job:hover {
+      transform: translateY(-3px);
+      border-color: #555;
+    }
+
+    .job-title {
       font-size: 21px;
+      font-weight: 800;
+      margin-bottom: 15px;
     }
 
-    .job p {
+    .job-profession {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: #242424;
+      color: #ccc;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    .job-info {
+      display: grid;
+      gap: 9px;
       color: #aaa;
+      font-size: 14px;
       line-height: 1.5;
     }
 
-    .job-button {
-      display: inline-block;
-      margin-top: 12px;
-      padding: 12px 18px;
-      border-radius: 7px;
-      background: white;
-      color: #111;
-      text-decoration: none;
-      font-weight: bold;
+    .job-info strong {
+      color: #eee;
     }
 
-    .no-results {
-      display: none;
+    .job-conditions {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #292929;
+      color: #999;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .apply {
+      display: block;
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px 18px;
       text-align: center;
+      border-radius: 8px;
+      background: #fff;
+      color: #000;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .5px;
+      transition: 0.2s;
+    }
+
+    .apply:hover {
+      background: #dcdcdc;
+    }
+
+    .loading,
+    .empty,
+    .error {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 55px 20px;
+      color: #888;
+      border: 1px solid #252525;
+      border-radius: 14px;
+      background: #111;
+    }
+
+    .error {
       color: #aaa;
-      padding: 30px;
     }
 
     .cta {
-      margin-top: 50px;
-      padding: 40px 20px;
-      background: #181818;
-      border: 1px solid #333;
-      border-radius: 14px;
+      margin: 10px 0 70px;
+      padding: 38px 25px;
       text-align: center;
+      border: 1px solid #292929;
+      border-radius: 14px;
+      background: #111;
     }
 
     .cta h2 {
-      margin-top: 0;
+      font-size: 25px;
+      margin-bottom: 10px;
     }
 
-    .cta-button {
+    .cta p {
+      color: #888;
+      margin-bottom: 22px;
+    }
+
+    .cta a {
       display: inline-block;
-      margin: 10px;
-      padding: 14px 24px;
-      background: white;
-      color: #111;
-      text-decoration: none;
+      padding: 13px 24px;
       border-radius: 8px;
-      font-weight: bold;
+      background: #fff;
+      color: #000;
+      font-weight: 800;
+      font-size: 13px;
     }
 
     footer {
-      text-align: center;
-      padding: 30px;
+      border-top: 1px solid #222;
+      padding: 25px 0;
       color: #666;
+      font-size: 13px;
+      text-align: center;
     }
 
-    @media (max-width: 600px) {
-      header h1 {
-        font-size: 34px;
+    @media (max-width: 750px) {
+      .header-inner {
+        align-items: flex-start;
       }
 
-      .search-row {
-        flex-direction: column;
+      .telegram {
+        padding: 9px 12px;
+        font-size: 11px;
       }
 
-      #searchButton {
-        width: 100%;
+      .jobs {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding: 45px 0 35px;
+      }
+
+      .hero h1 {
+        letter-spacing: -1px;
       }
     }
   </style>
@@ -187,200 +295,309 @@
 <body>
 
 <header>
-  <h1>РАБОТА | ВАХТА</h1>
-  <p>Вакансии, поиск и подбор рабочих специалистов</p>
-</header>
-
-<main class="container">
-
-  <section class="search-box">
-    <h2>Поиск вакансий</h2>
-
-    <div class="search-row">
-      <input
-        id="searchInput"
-        type="text"
-        placeholder="Введите профессию: монтажник, сварщик, маляр..."
-      >
-
-      <button id="searchButton">
-        НАЙТИ
-      </button>
+  <div class="container header-inner">
+    <div class="logo">
+      РАБОТА <span>|</span> ВАХТА
     </div>
-
-    <div id="resultCount"></div>
-  </section>
-
-  <h2 class="section-title">Актуальные вакансии</h2>
-
-  <section class="jobs" id="jobs">
-
-    <div class="job" data-search="монтажник строительных лесов леса подмости">
-      <h3>Монтажник строительных лесов</h3>
-      <p>
-        Требуются опытные специалисты для работы
-        на строительных объектах.
-      </p>
-
-      <a
-        class="job-button"
-        href="https://t.me/VakhtovykHelperBot"
-        target="_blank"
-      >
-        Откликнуться
-      </a>
-    </div>
-
-    <div class="job" data-search="монтажник жбк железобетон бетон конструкции">
-      <h3>Монтажник ЖБК</h3>
-      <p>
-        Работа для опытных монтажников
-        железобетонных конструкций.
-      </p>
-
-      <a
-        class="job-button"
-        href="https://t.me/VakhtovykHelperBot"
-        target="_blank"
-      >
-        Откликнуться
-      </a>
-    </div>
-
-    <div class="job" data-search="сварщик сварка металлоконструкции">
-      <h3>Сварщик</h3>
-      <p>
-        Требуются квалифицированные сварщики
-        на строительные объекты.
-      </p>
-
-      <a
-        class="job-button"
-        href="https://t.me/VakhtovykHelperBot"
-        target="_blank"
-      >
-        Откликнуться
-      </a>
-    </div>
-
-    <div class="job" data-search="изолировщик изоляция теплоизоляция">
-      <h3>Изолировщик</h3>
-      <p>
-        Ищем опытных специалистов
-        по теплоизоляции.
-      </p>
-
-      <a
-        class="job-button"
-        href="https://t.me/VakhtovykHelperBot"
-        target="_blank"
-      >
-        Откликнуться
-      </a>
-    </div>
-
-    <div class="job" data-search="маляр покраска отделка">
-      <h3>Моляр</h3>
-      <p>
-        Работа для профессиональных маляров
-        на строительных объектах.
-      </p>
-
-      <a
-        class="job-button"
-        href="https://t.me/VakhtovykHelperBot"
-        target="_blank"
-      >
-        Откликнуться
-      </a>
-    </div>
-
-  </section>
-
-  <div class="no-results" id="noResults">
-    По вашему запросу вакансий не найдено.
-  </div>
-
-  <section class="cta">
-
-    <h2>Ищете работу?</h2>
-
-    <p>
-      Найдите подходящую вакансию и откликнитесь
-      через Telegram.
-    </p>
 
     <a
-      class="cta-button"
-      href="https://t.me/VakhtovykHelperBot"
-      target="_blank"
-    >
-      НАЙТИ РАБОТУ
-    </a>
-
-    <a
-      class="cta-button"
+      class="telegram"
       href="https://t.me/vakhtovyk"
       target="_blank"
+      rel="noopener noreferrer"
     >
-      НАШ TELEGRAM-КАНАЛ
+      TELEGRAM
     </a>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="container">
+
+      <h1>АКТУАЛЬНЫЕ<br>ВАКАНСИИ</h1>
+
+      <p>
+        Работа для профессионалов строительной отрасли.
+        Монтажники, сварщики, изолировщики, маляры и другие специалисты.
+      </p>
+
+      <div class="search-box">
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="Поиск по профессии, городу или вакансии..."
+          autocomplete="off"
+        >
+
+        <div class="search-info" id="searchInfo">
+          Загрузка вакансий...
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="container">
+
+    <div class="section-head">
+      <h2>Вакансии</h2>
+      <div class="count" id="resultCount"></div>
+    </div>
+
+    <div class="jobs" id="jobs">
+      <div class="loading">
+        Загружаем актуальные вакансии...
+      </div>
+    </div>
+
+  </section>
+
+  <section class="container">
+
+    <div class="cta">
+      <h2>Не нашли подходящую вакансию?</h2>
+
+      <p>
+        Оставьте свою анкету в Telegram-боте.
+        Мы свяжемся с вами, когда появится подходящая работа.
+      </p>
+
+      <a
+        href="https://t.me/VakhtovykHelperBot"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        ОСТАВИТЬ АНКЕТУ
+      </a>
+    </div>
 
   </section>
 
 </main>
 
 <footer>
-  © 2026 Работа | Вахта
+  <div class="container">
+    © 2026 РАБОТА | ВАХТА
+  </div>
 </footer>
 
 <script>
+  const jobsContainer = document.getElementById("jobs");
   const searchInput = document.getElementById("searchInput");
-  const searchButton = document.getElementById("searchButton");
-  const jobs = document.querySelectorAll(".job");
-  const noResults = document.getElementById("noResults");
   const resultCount = document.getElementById("resultCount");
+  const searchInfo = document.getElementById("searchInfo");
 
-  function searchJobs() {
-    const query = searchInput.value
-      .toLowerCase()
-      .trim();
+  let allVacancies = [];
 
-    let found = 0;
-
-    jobs.forEach(job => {
-      const text = job
-        .getAttribute("data-search")
-        .toLowerCase();
-
-      if (query === "" || text.includes(query)) {
-        job.style.display = "block";
-        found++;
-      } else {
-        job.style.display = "none";
-      }
-    });
-
-    if (query === "") {
-      resultCount.textContent = "";
-    } else {
-      resultCount.textContent =
-        "Найдено вакансий: " + found;
-    }
-
-    noResults.style.display =
-      found === 0 ? "block" : "none";
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
-  searchButton.addEventListener("click", searchJobs);
+  function vacancyText(vacancy) {
+    return [
+      vacancy.title,
+      vacancy.profession,
+      vacancy.location,
+      vacancy.experience,
+      vacancy.payment,
+      vacancy.conditions,
+      vacancy.shift
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+  }
 
-  searchInput.addEventListener("input", searchJobs);
+  function renderVacancies(list) {
+    if (!list.length) {
+      jobsContainer.innerHTML = `
+        <div class="empty">
+          <div style="font-size:18px;color:#ddd;margin-bottom:8px;">
+            Вакансии не найдены
+          </div>
+          <div>
+            Попробуйте изменить поисковый запрос.
+          </div>
+        </div>
+      `;
 
-  searchInput.addEventListener("keydown", function(event) {
-    if (event.key === "Enter") {
-      searchJobs();
+      resultCount.textContent = "0 вакансий";
+      return;
     }
-  });
+
+    jobsContainer.innerHTML = list.map(vacancy => {
+
+      const location = vacancy.location
+        ? `
+          <div>
+            📍 <strong>Объект:</strong>
+            ${escapeHtml(vacancy.location)}
+          </div>
+        `
+        : "";
+
+      const experience = vacancy.experience
+        ? `
+          <div>
+            👷 <strong>Опыт:</strong>
+            ${escapeHtml(vacancy.experience)}
+          </div>
+        `
+        : "";
+
+      const shift = vacancy.shift
+        ? `
+          <div>
+            🚧 <strong>Вахта:</strong>
+            ${escapeHtml(vacancy.shift)}
+          </div>
+        `
+        : "";
+
+      const payment = vacancy.payment
+        ? `
+          <div>
+            💰 <strong>Оплата:</strong>
+            ${escapeHtml(vacancy.payment)}
+          </div>
+        `
+        : "";
+
+      const conditions = vacancy.conditions
+        ? `
+          <div class="job-conditions">
+            <strong>Условия:</strong><br>
+            ${escapeHtml(vacancy.conditions)}
+          </div>
+        `
+        : "";
+
+      return `
+        <article class="job">
+
+          <div class="job-title">
+            ${escapeHtml(vacancy.title)}
+          </div>
+
+          <div class="job-profession">
+            ${escapeHtml(vacancy.profession || "Рабочая специальность")}
+          </div>
+
+          <div class="job-info">
+            ${location}
+            ${experience}
+            ${payment}
+            ${shift}
+          </div>
+
+          ${conditions}
+
+          <a
+            class="apply"
+            href="https://t.me/VakhtovykHelperBot?start=vacancy_${encodeURIComponent(vacancy.id)}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ОТКЛИКНУТЬСЯ
+          </a>
+
+        </article>
+      `;
+    }).join("");
+
+    resultCount.textContent =
+      `${list.length} ${getVacancyWord(list.length)}`;
+  }
+
+  function getVacancyWord(number) {
+    const n = Math.abs(number) % 100;
+    const n1 = n % 10;
+
+    if (n > 10 && n < 20) return "вакансий";
+    if (n1 === 1) return "вакансия";
+    if (n1 >= 2 && n1 <= 4) return "вакансии";
+
+    return "вакансий";
+  }
+
+  function filterVacancies() {
+    const query = searchInput.value.trim().toLowerCase();
+
+    if (!query) {
+      renderVacancies(allVacancies);
+      searchInfo.textContent =
+        "Показаны все актуальные вакансии";
+      return;
+    }
+
+    const filtered = allVacancies.filter(vacancy =>
+      vacancyText(vacancy).includes(query)
+    );
+
+    renderVacancies(filtered);
+
+    searchInfo.textContent =
+      `Результаты поиска: «${searchInput.value.trim()}»`;
+  }
+
+  async function loadVacancies() {
+    try {
+      const response = await fetch("/api/vacancies", {
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка сервера");
+      }
+
+      const data = await response.json();
+
+      if (!data.ok) {
+        throw new Error(data.error || "Не удалось загрузить вакансии");
+      }
+
+      allVacancies = Array.isArray(data.vacancies)
+        ? data.vacancies
+        : [];
+
+      renderVacancies(allVacancies);
+
+      searchInfo.textContent =
+        allVacancies.length
+          ? "Показаны актуальные вакансии"
+          : "Сейчас актуальных вакансий нет";
+
+    } catch (error) {
+
+      console.error(error);
+
+      jobsContainer.innerHTML = `
+        <div class="error">
+          <div style="font-size:18px;color:#ddd;margin-bottom:8px;">
+            Не удалось загрузить вакансии
+          </div>
+
+          <div>
+            Попробуйте обновить страницу позже.
+          </div>
+        </div>
+      `;
+
+      resultCount.textContent = "";
+      searchInfo.textContent = "Ошибка загрузки";
+    }
+  }
+
+  searchInput.addEventListener("input", filterVacancies);
+
+  loadVacancies();
 </script>
 
 </body>
