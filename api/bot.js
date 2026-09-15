@@ -266,7 +266,7 @@ export default async function handler(req, res) {
           "Например:\n" +
           "• Сварщик\n" +
           "• Монтажник\n" +
-          "• Маляр\n" +
+          "• Моляр\n" +
           "• Изолировщик";
       }
 
