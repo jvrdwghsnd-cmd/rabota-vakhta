@@ -128,8 +128,14 @@ async function initDb() {
       phone TEXT NOT NULL,
       experience TEXT NOT NULL,
       telegram_username TEXT,
+      status TEXT NOT NULL DEFAULT 'new',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `;
+
+  await sql`
+    ALTER TABLE applications
+    ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'new'
   `;
 }
 
@@ -182,8 +188,16 @@ async function setSession(chatId, data) {
       step = ${data.step !== undefined ? data.step : existing.step},
       name = ${data.name !== undefined ? data.name : existing.name},
       phone = ${data.phone !== undefined ? data.phone : existing.phone},
-      profession = ${data.profession !== undefined ? data.profession : existing.profession},
-      experience = ${data.experience !== undefined ? data.experience : existing.experience},
+      profession = ${
+        data.profession !== undefined
+          ? data.profession
+          : existing.profession
+      },
+      experience = ${
+        data.experience !== undefined
+          ? data.experience
+          : existing.experience
+      },
       city = ${data.city !== undefined ? data.city : existing.city},
       shift = ${data.shift !== undefined ? data.shift : existing.shift},
       application_vacancy_id = ${
@@ -253,6 +267,12 @@ async function showAdminPanel(chatId) {
     FROM applications
   `;
 
+  const newApplications = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM applications
+    WHERE status = 'new'
+  `;
+
   await sendMessage(
     chatId,
     `🔐 АДМИН-ПАНЕЛЬ
@@ -260,7 +280,8 @@ async function showAdminPanel(chatId) {
 👷 Сохранённых анкет: ${candidates[0].count}
 📋 Вакансий: ${vacancies[0].count}
 📢 Опубликовано: ${published[0].count}
-📩 Откликов: ${applications[0].count}`,
+📩 Откликов: ${applications[0].count}
+🆕 Новых откликов: ${newApplications[0].count}`,
     adminKeyboard
   );
 }
@@ -347,6 +368,22 @@ async function showAllVacancies(chatId) {
   await sendMessage(chatId, text);
 }
 
+function getApplicationStatusText(status) {
+  if (status === "review") {
+    return "🟡 На рассмотрении";
+  }
+
+  if (status === "accepted") {
+    return "✅ Принят";
+  }
+
+  if (status === "rejected") {
+    return "❌ Отказ";
+  }
+
+  return "🆕 Новый";
+}
+
 async function showAllApplications(chatId) {
   if (String(chatId) !== ADMIN_ID) {
     await sendMessage(chatId, "⛔ Доступ запрещён.");
@@ -370,29 +407,151 @@ async function showAllApplications(chatId) {
     return;
   }
 
-  let text = "📩 ВСЕ ОТКЛИКИ\n\n";
+  await sendMessage(
+    chatId,
+    `📩 ВСЕ ОТКЛИКИ
 
-  rows.forEach((row, index) => {
-    text += `━━━━━━━━━━━━━━
-📩 ОТКЛИК №${index + 1}
-🆔 ID отклика: ${row.id}
+Всего откликов: ${rows.length}
 
-📋 Вакансия: ${row.vacancy_title || "Неизвестна"}
-👷 Профессия: ${row.vacancy_profession || "Не указана"}
-📍 Объект: ${row.vacancy_location || "Не указан"}
+Выберите отклик:`
+  );
 
-👤 Имя: ${row.name}
-📱 Телефон: ${row.phone}
-📅 Опыт: ${row.experience}
-💬 Telegram: ${row.telegram_username ? "@" + row.telegram_username : "Не указан"}
+  for (const row of rows) {
+    const statusText = getApplicationStatusText(row.status);
 
-`;
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: `📩 ОТКЛИК №${row.id}
+
+👤 ${row.name}
+👷 ${row.vacancy_profession || "Не указана"}
+📋 ${row.vacancy_title || "Вакансия не найдена"}
+📍 ${row.vacancy_location || "Не указан"}
+
+${statusText}`,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: `📂 Открыть отклик №${row.id}`,
+              callback_data: `application_view:${row.id}`,
+            },
+          ],
+        ],
+      },
+    });
+  }
+}
+
+async function showApplicationCard(chatId, applicationId) {
+  if (String(chatId) !== ADMIN_ID) {
+    await sendMessage(chatId, "⛔ Доступ запрещён.");
+    return;
+  }
+
+  const rows = await sql`
+    SELECT
+      applications.*,
+      vacancies.title AS vacancy_title,
+      vacancies.profession AS vacancy_profession,
+      vacancies.location AS vacancy_location,
+      vacancies.phone AS employer_phone
+    FROM applications
+    LEFT JOIN vacancies
+      ON vacancies.id = applications.vacancy_id
+    WHERE applications.id = ${applicationId}
+    LIMIT 1
+  `;
+
+  if (rows.length === 0) {
+    await sendMessage(chatId, "❌ Отклик не найден.");
+    return;
+  }
+
+  const row = rows[0];
+
+  const statusText = getApplicationStatusText(row.status);
+
+  const text = `📩 КАРТОЧКА ОТКЛИКА №${row.id}
+
+━━━━━━━━━━━━━━
+
+📋 ВАКАНСИЯ
+
+${row.vacancy_title || "Не найдена"}
+
+👷 Профессия
+
+${row.vacancy_profession || "Не указана"}
+
+📍 Город / объект
+
+${row.vacancy_location || "Не указан"}
+
+━━━━━━━━━━━━━━
+
+👤 КАНДИДАТ
+
+${row.name}
+
+📱 Телефон
+
+${row.phone}
+
+📅 Опыт
+
+${row.experience}
+
+💬 Telegram
+
+${row.telegram_username ? "@" + row.telegram_username : "Не указан"}
+
+🆔 ID кандидата
+
+${row.candidate_chat_id}
+
+━━━━━━━━━━━━━━
+
+📞 КОНТАКТ РАБОТОДАТЕЛЯ
+
+${row.employer_phone || "Не указан"}
+
+━━━━━━━━━━━━━━
+
+📊 СТАТУС
+
+${statusText}`;
+
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text,
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: "🟡 На рассмотрении",
+            callback_data: `application_status:${row.id}:review`,
+          },
+        ],
+        [
+          {
+            text: "✅ Принят",
+            callback_data: `application_status:${row.id}:accepted`,
+          },
+          {
+            text: "❌ Отказ",
+            callback_data: `application_status:${row.id}:rejected`,
+          },
+        ],
+        [
+          {
+            text: "🆕 Новый",
+            callback_data: `application_status:${row.id}:new`,
+          },
+        ],
+      ],
+    },
   });
-
-  text += `━━━━━━━━━━━━━━
-Всего откликов: ${rows.length}`;
-
-  await sendMessage(chatId, text);
 }
 
 async function showVacanciesForPublishing(chatId) {
@@ -705,6 +864,24 @@ async function showStatistics(chatId) {
     FROM applications
   `;
 
+  const newApplications = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM applications
+    WHERE status = 'new'
+  `;
+
+  const reviewApplications = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM applications
+    WHERE status = 'review'
+  `;
+
+  const acceptedApplications = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM applications
+    WHERE status = 'accepted'
+  `;
+
   await sendMessage(
     chatId,
     `📊 СТАТИСТИКА
@@ -715,7 +892,13 @@ async function showStatistics(chatId) {
 
 📢 Опубликовано вакансий: ${published[0].count}
 
-📩 Откликов: ${applications[0].count}
+📩 Всего откликов: ${applications[0].count}
+
+🆕 Новых: ${newApplications[0].count}
+
+🟡 На рассмотрении: ${reviewApplications[0].count}
+
+✅ Принято: ${acceptedApplications[0].count}
 
 🚧 Специалистов готовы на вахту: ${shifts[0].count}`
   );
@@ -785,7 +968,8 @@ async function handleApplication(chatId, text, session, username) {
         name,
         phone,
         experience,
-        telegram_username
+        telegram_username,
+        status
       )
       VALUES (
         ${vacancy.id},
@@ -793,7 +977,8 @@ async function handleApplication(chatId, text, session, username) {
         ${session.name},
         ${session.phone},
         ${experience},
-        ${telegramUsername}
+        ${telegramUsername},
+        'new'
       )
       RETURNING id
     `;
@@ -821,9 +1006,9 @@ async function handleApplication(chatId, text, session, username) {
 
     await showMainMenu(chatId);
 
-    await sendMessage(
-      ADMIN_ID,
-      `🔔 НОВЫЙ ОТКЛИК!
+    await tg("sendMessage", {
+      chat_id: ADMIN_ID,
+      text: `🔔 НОВЫЙ ОТКЛИК!
 
 ━━━━━━━━━━━━━━
 
@@ -857,8 +1042,18 @@ ${chatId}
 
 ━━━━━━━━━━━━━━
 
-📞 Свяжитесь с кандидатом и работодателем.`
-    );
+🆕 Статус: Новый`,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "📂 Открыть отклик",
+              callback_data: `application_view:${applicationId}`,
+            },
+          ],
+        ],
+      },
+    });
   }
 }
 
@@ -1201,17 +1396,17 @@ async function handleCallbackQuery(callbackQuery) {
   const data = callbackQuery.data || "";
   const fromId = String(callbackQuery.from?.id || "");
 
+  if (fromId !== ADMIN_ID) {
+    await tg("answerCallbackQuery", {
+      callback_query_id: callbackId,
+      text: "⛔ Доступ запрещён.",
+      show_alert: true,
+    });
+
+    return;
+  }
+
   if (data.startsWith("publish_vacancy:")) {
-    if (fromId !== ADMIN_ID) {
-      await tg("answerCallbackQuery", {
-        callback_query_id: callbackId,
-        text: "⛔ Доступ запрещён.",
-        show_alert: true,
-      });
-
-      return;
-    }
-
     await tg("answerCallbackQuery", {
       callback_query_id: callbackId,
     });
@@ -1219,6 +1414,74 @@ async function handleCallbackQuery(callbackQuery) {
     const vacancyId = data.split(":")[1];
 
     await publishVacancy(vacancyId, fromId);
+    return;
+  }
+
+  if (data.startsWith("application_view:")) {
+    await tg("answerCallbackQuery", {
+      callback_query_id: callbackId,
+    });
+
+    const applicationId = data.split(":")[1];
+
+    await showApplicationCard(fromId, applicationId);
+    return;
+  }
+
+  if (data.startsWith("application_status:")) {
+    const parts = data.split(":");
+
+    const applicationId = parts[1];
+    const newStatus = parts[2];
+
+    const allowedStatuses = [
+      "new",
+      "review",
+      "accepted",
+      "rejected",
+    ];
+
+    if (!allowedStatuses.includes(newStatus)) {
+      await tg("answerCallbackQuery", {
+        callback_query_id: callbackId,
+        text: "❌ Недопустимый статус.",
+        show_alert: true,
+      });
+
+      return;
+    }
+
+    const applicationRows = await sql`
+      SELECT id
+      FROM applications
+      WHERE id = ${applicationId}
+      LIMIT 1
+    `;
+
+    if (applicationRows.length === 0) {
+      await tg("answerCallbackQuery", {
+        callback_query_id: callbackId,
+        text: "❌ Отклик не найден.",
+        show_alert: true,
+      });
+
+      return;
+    }
+
+    await sql`
+      UPDATE applications
+      SET status = ${newStatus}
+      WHERE id = ${applicationId}
+    `;
+
+    const statusText = getApplicationStatusText(newStatus);
+
+    await tg("answerCallbackQuery", {
+      callback_query_id: callbackId,
+      text: `Статус изменён: ${statusText}`,
+    });
+
+    await showApplicationCard(fromId, applicationId);
   }
 }
 
