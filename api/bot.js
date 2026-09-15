@@ -47,8 +47,14 @@ async function initDb() {
       experience TEXT,
       city TEXT,
       shift TEXT,
+      application_vacancy_id BIGINT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `;
+
+  await sql`
+    ALTER TABLE bot_sessions
+    ADD COLUMN IF NOT EXISTS application_vacancy_id BIGINT
   `;
 
   await sql`
@@ -112,6 +118,19 @@ async function initDb() {
     ALTER TABLE vacancies
     ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS applications (
+      id BIGSERIAL PRIMARY KEY,
+      vacancy_id BIGINT NOT NULL,
+      candidate_chat_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      experience TEXT NOT NULL,
+      telegram_username TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
 }
 
 async function getSession(chatId) {
@@ -138,7 +157,8 @@ async function setSession(chatId, data) {
         profession,
         experience,
         city,
-        shift
+        shift,
+        application_vacancy_id
       )
       VALUES (
         ${String(chatId)},
@@ -148,7 +168,8 @@ async function setSession(chatId, data) {
         ${data.profession || null},
         ${data.experience || null},
         ${data.city || null},
-        ${data.shift || null}
+        ${data.shift || null},
+        ${data.application_vacancy_id || null}
       )
     `;
 
@@ -164,7 +185,12 @@ async function setSession(chatId, data) {
       profession = ${data.profession !== undefined ? data.profession : existing.profession},
       experience = ${data.experience !== undefined ? data.experience : existing.experience},
       city = ${data.city !== undefined ? data.city : existing.city},
-      shift = ${data.shift !== undefined ? data.shift : existing.shift}
+      shift = ${data.shift !== undefined ? data.shift : existing.shift},
+      application_vacancy_id = ${
+        data.application_vacancy_id !== undefined
+          ? data.application_vacancy_id
+          : existing.application_vacancy_id
+      }
     WHERE chat_id = ${String(chatId)}
   `;
 }
@@ -186,6 +212,7 @@ const mainKeyboard = [
 const adminKeyboard = [
   ["👷 Все анкеты", "🔎 Найти специалиста"],
   ["📋 Все вакансии"],
+  ["📩 Все отклики"],
   ["📢 Опубликовать вакансию"],
   ["📊 Статистика"],
   ["🏠 Главное меню"],
@@ -221,13 +248,19 @@ async function showAdminPanel(chatId) {
     WHERE published = TRUE
   `;
 
+  const applications = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM applications
+  `;
+
   await sendMessage(
     chatId,
     `🔐 АДМИН-ПАНЕЛЬ
 
 👷 Сохранённых анкет: ${candidates[0].count}
 📋 Вакансий: ${vacancies[0].count}
-📢 Опубликовано: ${published[0].count}`,
+📢 Опубликовано: ${published[0].count}
+📩 Откликов: ${applications[0].count}`,
     adminKeyboard
   );
 }
@@ -310,6 +343,54 @@ async function showAllVacancies(chatId) {
 
   text += `━━━━━━━━━━━━━━
 Всего вакансий: ${rows.length}`;
+
+  await sendMessage(chatId, text);
+}
+
+async function showAllApplications(chatId) {
+  if (String(chatId) !== ADMIN_ID) {
+    await sendMessage(chatId, "⛔ Доступ запрещён.");
+    return;
+  }
+
+  const rows = await sql`
+    SELECT
+      applications.*,
+      vacancies.title AS vacancy_title,
+      vacancies.profession AS vacancy_profession,
+      vacancies.location AS vacancy_location
+    FROM applications
+    LEFT JOIN vacancies
+      ON vacancies.id = applications.vacancy_id
+    ORDER BY applications.id DESC
+  `;
+
+  if (rows.length === 0) {
+    await sendMessage(chatId, "📩 Откликов пока нет.");
+    return;
+  }
+
+  let text = "📩 ВСЕ ОТКЛИКИ\n\n";
+
+  rows.forEach((row, index) => {
+    text += `━━━━━━━━━━━━━━
+📩 ОТКЛИК №${index + 1}
+🆔 ID отклика: ${row.id}
+
+📋 Вакансия: ${row.vacancy_title || "Неизвестна"}
+👷 Профессия: ${row.vacancy_profession || "Не указана"}
+📍 Объект: ${row.vacancy_location || "Не указан"}
+
+👤 Имя: ${row.name}
+📱 Телефон: ${row.phone}
+📅 Опыт: ${row.experience}
+💬 Telegram: ${row.telegram_username ? "@" + row.telegram_username : "Не указан"}
+
+`;
+  });
+
+  text += `━━━━━━━━━━━━━━
+Всего откликов: ${rows.length}`;
 
   await sendMessage(chatId, text);
 }
@@ -463,9 +544,7 @@ ${escapeHtml(vacancy.shift || "Уточняется")}
       `❌ Не удалось опубликовать вакансию.
 
 Telegram сообщил:
-${result.description || "Неизвестная ошибка"}
-
-Проверь, что @VakhtovykHelperBot является администратором канала @vakhtovyk и имеет право публикации сообщений.`
+${result.description || "Неизвестная ошибка"}`
     );
 
     return;
@@ -502,6 +581,7 @@ async function startCandidate(chatId) {
     experience: null,
     city: null,
     shift: null,
+    application_vacancy_id: null,
   });
 
   await sendMessage(
@@ -519,6 +599,7 @@ async function startVacancy(chatId) {
     experience: null,
     city: null,
     shift: null,
+    application_vacancy_id: null,
   });
 
   await sendMessage(
@@ -543,6 +624,51 @@ async function startSearch(chatId) {
 Сварщик
 Моляр
 Изолировщик`
+  );
+}
+
+async function startApplication(chatId, vacancyId) {
+  const rows = await sql`
+    SELECT *
+    FROM vacancies
+    WHERE id = ${vacancyId}
+    LIMIT 1
+  `;
+
+  if (rows.length === 0) {
+    await sendMessage(
+      chatId,
+      "❌ Эта вакансия больше не найдена."
+    );
+
+    await showMainMenu(chatId);
+    return;
+  }
+
+  const vacancy = rows[0];
+
+  await setSession(chatId, {
+    step: 301,
+    name: null,
+    phone: null,
+    profession: null,
+    experience: null,
+    city: null,
+    shift: null,
+    application_vacancy_id: vacancy.id,
+  });
+
+  await sendMessage(
+    chatId,
+    `📩 ОТКЛИК НА ВАКАНСИЮ
+
+📋 ${vacancy.title}
+👷 ${vacancy.profession}
+📍 ${vacancy.location}
+
+Чтобы откликнуться, заполните короткую анкету.
+
+👤 Как вас зовут?`
   );
 }
 
@@ -574,6 +700,11 @@ async function showStatistics(chatId) {
     WHERE LOWER(shift) LIKE '%да%'
   `;
 
+  const applications = await sql`
+    SELECT COUNT(*)::int AS count
+    FROM applications
+  `;
+
   await sendMessage(
     chatId,
     `📊 СТАТИСТИКА
@@ -584,8 +715,151 @@ async function showStatistics(chatId) {
 
 📢 Опубликовано вакансий: ${published[0].count}
 
+📩 Откликов: ${applications[0].count}
+
 🚧 Специалистов готовы на вахту: ${shifts[0].count}`
   );
+}
+
+async function handleApplication(chatId, text, session, username) {
+  if (session.step === 301) {
+    await setSession(chatId, {
+      ...session,
+      step: 302,
+      name: text,
+    });
+
+    await sendMessage(
+      chatId,
+      "📱 Укажите номер телефона:"
+    );
+
+    return;
+  }
+
+  if (session.step === 302) {
+    await setSession(chatId, {
+      ...session,
+      step: 303,
+      phone: text,
+    });
+
+    await sendMessage(
+      chatId,
+      "📅 Сколько лет опыта по этой профессии?"
+    );
+
+    return;
+  }
+
+  if (session.step === 303) {
+    const experience = text;
+
+    const vacancyRows = await sql`
+      SELECT *
+      FROM vacancies
+      WHERE id = ${session.application_vacancy_id}
+      LIMIT 1
+    `;
+
+    if (vacancyRows.length === 0) {
+      await clearSession(chatId);
+
+      await sendMessage(
+        chatId,
+        "❌ К сожалению, эта вакансия больше не найдена."
+      );
+
+      await showMainMenu(chatId);
+      return;
+    }
+
+    const vacancy = vacancyRows[0];
+
+    const telegramUsername = username || null;
+
+    const inserted = await sql`
+      INSERT INTO applications (
+        vacancy_id,
+        candidate_chat_id,
+        name,
+        phone,
+        experience,
+        telegram_username
+      )
+      VALUES (
+        ${vacancy.id},
+        ${String(chatId)},
+        ${session.name},
+        ${session.phone},
+        ${experience},
+        ${telegramUsername}
+      )
+      RETURNING id
+    `;
+
+    const applicationId = inserted[0].id;
+
+    await clearSession(chatId);
+
+    await sendMessage(
+      chatId,
+      `✅ ОТКЛИК ПРИНЯТ!
+
+📋 Вакансия: ${vacancy.title}
+👷 Профессия: ${vacancy.profession}
+📍 ${vacancy.location}
+
+👤 Имя: ${session.name}
+📱 Телефон: ${session.phone}
+📅 Опыт: ${experience}
+
+🆔 Номер отклика: ${applicationId}
+
+Спасибо! Администратор свяжется с вами.`
+    );
+
+    await showMainMenu(chatId);
+
+    await sendMessage(
+      ADMIN_ID,
+      `🔔 НОВЫЙ ОТКЛИК!
+
+━━━━━━━━━━━━━━
+
+📩 ОТКЛИК №${applicationId}
+
+📋 Вакансия:
+${vacancy.title}
+
+👷 Профессия:
+${vacancy.profession}
+
+📍 Город / объект:
+${vacancy.location}
+
+━━━━━━━━━━━━━━
+
+👤 Имя:
+${session.name}
+
+📱 Телефон:
+${session.phone}
+
+📅 Опыт:
+${experience}
+
+💬 Telegram:
+${telegramUsername ? "@" + telegramUsername : "Не указан"}
+
+🆔 ID кандидата:
+${chatId}
+
+━━━━━━━━━━━━━━
+
+📞 Свяжитесь с кандидатом и работодателем.`
+    );
+  }
 }
 
 async function handleCandidate(chatId, text, session) {
@@ -927,10 +1201,6 @@ async function handleCallbackQuery(callbackQuery) {
   const data = callbackQuery.data || "";
   const fromId = String(callbackQuery.from?.id || "");
 
-  await tg("answerCallbackQuery", {
-    callback_query_id: callbackId,
-  });
-
   if (data.startsWith("publish_vacancy:")) {
     if (fromId !== ADMIN_ID) {
       await tg("answerCallbackQuery", {
@@ -941,6 +1211,10 @@ async function handleCallbackQuery(callbackQuery) {
 
       return;
     }
+
+    await tg("answerCallbackQuery", {
+      callback_query_id: callbackId,
+    });
 
     const vacancyId = data.split(":")[1];
 
@@ -985,7 +1259,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Нажатие inline-кнопки
     if (update.callback_query) {
       await handleCallbackQuery(update.callback_query);
 
@@ -1003,6 +1276,7 @@ export default async function handler(req, res) {
     const message = update.message;
     const chatId = message.chat.id;
     const text = message.text ? message.text.trim() : "";
+    const username = message.from?.username || "";
 
     if (!text) {
       return res.status(200).json({
@@ -1010,52 +1284,20 @@ export default async function handler(req, res) {
       });
     }
 
-    // /start
-    if (text === "/start") {
-      await clearSession(chatId);
-      await showMainMenu(chatId);
+    // Отклик на вакансию
+    if (text.startsWith("/start vacancy_")) {
+      const vacancyId = text.replace("/start vacancy_", "");
+
+      await startApplication(chatId, vacancyId);
 
       return res.status(200).json({
         ok: true,
       });
     }
 
-    // /start vacancy_ID
-    if (text.startsWith("/start vacancy_")) {
-      const vacancyId = text.replace("/start vacancy_", "");
-
-      const rows = await sql`
-        SELECT *
-        FROM vacancies
-        WHERE id = ${vacancyId}
-        LIMIT 1
-      `;
-
-      if (rows.length > 0) {
-        const vacancy = rows[0];
-
-        await sendMessage(
-          chatId,
-          `📩 ОТКЛИК НА ВАКАНСИЮ
-
-📋 ${vacancy.title}
-👷 ${vacancy.profession}
-📍 ${vacancy.location}
-
-Чтобы откликнуться, отправьте в этот чат:
-
-👤 Ваше имя
-📱 Номер телефона
-📅 Опыт работы
-
-Администратор свяжется с работодателем.`
-        );
-
-        return res.status(200).json({
-          ok: true,
-        });
-      }
-
+    // Обычный /start
+    if (text === "/start") {
+      await clearSession(chatId);
       await showMainMenu(chatId);
 
       return res.status(200).json({
@@ -1106,6 +1348,15 @@ export default async function handler(req, res) {
     // Все вакансии
     if (text === "📋 Все вакансии") {
       await showAllVacancies(chatId);
+
+      return res.status(200).json({
+        ok: true,
+      });
+    }
+
+    // Все отклики
+    if (text === "📩 Все отклики") {
+      await showAllApplications(chatId);
 
       return res.status(200).json({
         ok: true,
@@ -1195,6 +1446,20 @@ export default async function handler(req, res) {
       if (session.step === 100) {
         await handleSearch(chatId, text);
         await clearSession(chatId);
+
+        return res.status(200).json({
+          ok: true,
+        });
+      }
+
+      // Отклик
+      if (session.step >= 301 && session.step <= 303) {
+        await handleApplication(
+          chatId,
+          text,
+          session,
+          username
+        );
 
         return res.status(200).json({
           ok: true,
