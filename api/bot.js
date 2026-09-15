@@ -1,3 +1,5 @@
+const users = {};
+
 export default async function handler(req, res) {
   const token = process.env.BOT_TOKEN;
 
@@ -57,8 +59,10 @@ export default async function handler(req, res) {
     let reply = "";
     let keyboard = null;
 
-    // Главное меню
+    // START
     if (text === "/start") {
+      users[chatId] = null;
+
       reply =
         "👷 РАБОТА | ВАХТА\n\n" +
         "Добро пожаловать!\n\n" +
@@ -81,39 +85,117 @@ export default async function handler(req, res) {
         resize_keyboard: true
       };
 
-    // Начало анкеты
+    // НАЧАЛО АНКЕТЫ
     } else if (text === "👷 Я ищу работу") {
+
+      users[chatId] = {
+        step: 1,
+        name: "",
+        phone: "",
+        profession: "",
+        experience: "",
+        city: "",
+        shift: ""
+      };
+
       reply =
         "👷 АНКЕТА СПЕЦИАЛИСТА\n\n" +
         "Шаг 1 из 6\n\n" +
         "Напишите ваше имя.";
 
-    // Остальные разделы пока оставляем
+    // АНКЕТА
+    } else if (users[chatId]?.step === 1) {
+
+      users[chatId].name = text;
+      users[chatId].step = 2;
+
+      reply =
+        "📱 Шаг 2 из 6\n\n" +
+        "Напишите ваш номер телефона.";
+
+    } else if (users[chatId]?.step === 2) {
+
+      users[chatId].phone = text;
+      users[chatId].step = 3;
+
+      reply =
+        "👷 Шаг 3 из 6\n\n" +
+        "Какая у вас профессия?";
+
+    } else if (users[chatId]?.step === 3) {
+
+      users[chatId].profession = text;
+      users[chatId].step = 4;
+
+      reply =
+        "📅 Шаг 4 из 6\n\n" +
+        "Сколько лет опыта работы?";
+
+    } else if (users[chatId]?.step === 4) {
+
+      users[chatId].experience = text;
+      users[chatId].step = 5;
+
+      reply =
+        "📍 Шаг 5 из 6\n\n" +
+        "В каком городе вы находитесь?";
+
+    } else if (users[chatId]?.step === 5) {
+
+      users[chatId].city = text;
+      users[chatId].step = 6;
+
+      reply =
+        "🚧 Шаг 6 из 6\n\n" +
+        "Готовы работать вахтой?\n\n" +
+        "Напишите: Да или Нет.";
+
+    } else if (users[chatId]?.step === 6) {
+
+      users[chatId].shift = text;
+
+      const user = users[chatId];
+
+      reply =
+        "✅ АНКЕТА ПРИНЯТА!\n\n" +
+        "👤 Имя: " + user.name + "\n" +
+        "📱 Телефон: " + user.phone + "\n" +
+        "👷 Профессия: " + user.profession + "\n" +
+        "📅 Опыт: " + user.experience + "\n" +
+        "📍 Город: " + user.city + "\n" +
+        "🚧 Вахта: " + user.shift + "\n\n" +
+        "Спасибо! Ваша анкета принята.";
+
+      users[chatId] = null;
+
     } else if (text === "🏢 Я работодатель") {
+
       reply =
         "🏢 ДЛЯ РАБОТОДАТЕЛЕЙ\n\n" +
-        "Для размещения вакансии используйте кнопку:\n" +
+        "Для размещения вакансии нажмите:\n" +
         "📋 Разместить вакансию";
 
     } else if (text === "🔎 Найти работу") {
+
       reply =
         "🔎 ПОИСК РАБОТЫ\n\n" +
-        "Напишите профессию, которая вас интересует.\n\n" +
-        "Например: монтажник, сварщик, маляр, изолировщик.";
+        "Напишите профессию, которая вас интересует.";
 
     } else if (text === "📋 Разместить вакансию") {
+
       reply =
         "📋 РАЗМЕЩЕНИЕ ВАКАНСИИ\n\n" +
         "Напишите название вакансии и город/объект.";
 
     } else if (text === "📞 Связаться с администратором") {
+
       reply =
         "📞 СВЯЗЬ С АДМИНИСТРАТОРОМ\n\n" +
         "Напишите ваше сообщение.";
 
     } else {
+
       reply =
-        "Сообщение получено. 👷\n\n" +
         "Используйте /start для открытия главного меню.";
     }
 
