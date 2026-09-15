@@ -60,7 +60,6 @@ export default async function handler(req, res) {
     });
   }
 
-  // Установка webhook
   if (req.method === "GET" && req.query?.setup === "1") {
     const checkResponse = await fetch(
       `https://api.telegram.org/bot${token}/getMe`
@@ -114,8 +113,15 @@ export default async function handler(req, res) {
 
     const session = await getSession(chatId);
 
+    // TELEGRAM ID
+    if (text === "/id") {
+
+      reply =
+        "🆔 Ваш Telegram ID:\n\n" +
+        chatIdText;
+
     // START
-    if (text === "/start") {
+    } else if (text === "/start") {
 
       await sql`
         DELETE FROM bot_sessions
@@ -266,7 +272,7 @@ export default async function handler(req, res) {
         "Готовы работать вахтой?\n\n" +
         "Напишите: Да или Нет.";
 
-    // ШАГ 6 — СОХРАНЕНИЕ АНКЕТЫ
+    // ШАГ 6
     } else if (session?.step === 6) {
 
       await sql`
