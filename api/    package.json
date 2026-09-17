@@ -4,8 +4,14 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const POSTGRES_URL = process.env.POSTGRES_URL;
 const ADMIN_ID = process.env.ADMIN_ID || "";
 const CHANNEL_USERNAME = process.env.CHANNEL_USERNAME || "@vakhtovyk";
+const BOT_USERNAME =
+  process.env.BOT_USERNAME || "VakhtovykHelperBot";
 
 const sql = POSTGRES_URL ? neon(POSTGRES_URL) : null;
+
+/* =========================
+   TELEGRAM
+========================= */
 
 async function telegram(method, data = {}) {
   const response = await fetch(
@@ -29,6 +35,29 @@ async function sendMessage(chatId, text, extra = {}) {
     ...extra,
   });
 }
+
+async function answerCallbackQuery(id, text = "") {
+  return telegram("answerCallbackQuery", {
+    callback_query_id: id,
+    text,
+    show_alert: false,
+  });
+}
+
+function esc(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function isAdmin(chatId) {
+  return String(chatId) === String(ADMIN_ID);
+}
+
+/* =========================
+   DATABASE
+========================= */
 
 async function initDatabase() {
   await sql`
@@ -94,7 +123,31 @@ async function initDatabase() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+
+  /*
+    Безопасно добавляем дополнительные поля,
+    если их ещё нет.
+  */
+
+  await sql`
+    ALTER TABLE vacancies
+    ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ
+  `;
+
+  await sql`
+    ALTER TABLE vacancies
+    ADD COLUMN IF NOT EXISTS channel_message_id BIGINT
+  `;
+
+  await sql`
+    ALTER TABLE candidates
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ
+  `;
 }
+
+/* =========================
+   KEYBOARDS
+========================= */
 
 function mainKeyboard(chatId) {
   const keyboard = [
@@ -108,7 +161,7 @@ function mainKeyboard(chatId) {
     ],
   ];
 
-  if (String(chatId) === String(ADMIN_ID)) {
+  if (isAdmin(chatId)) {
     keyboard.push([
       { text: "🔐 Админ-панель" },
     ]);
@@ -130,6 +183,9 @@ function adminKeyboard() {
       [
         { text: "📩 Все отклики" },
         { text: "📊 Статистика" },
+      ],
+      [
+        { text: "🔎 Поиск специалиста" },
       ],
       [
         { text: "📢 Опубликовать вакансию" },
@@ -159,6 +215,10 @@ function employerKeyboard() {
     resize_keyboard: true,
   };
 }
+
+/* =========================
+   SESSION
+========================= */
 
 async function getSession(chatId) {
   const rows = await sql`
@@ -225,10 +285,54 @@ async function clearSession(chatId) {
 }
 
 async function mainMenu(chatId, text = "Главное меню") {
-  await sendMessage(chatId, text, {
+  return sendMessage(chatId, text, {
     reply_markup: mainKeyboard(chatId),
   });
 }
+
+/* =========================
+   VACANCY CARD
+========================= */
+
+function vacancyText(vacancy) {
+  return (
+    `🔥 <b>${esc(vacancy.title)}</b>\n\n` +
+    `🧰 <b>Профессия:</b> ${esc(vacancy.profession)}\n` +
+    `📍 <b>Город:</b> ${esc(vacancy.city)}\n` +
+    `⏱ <b>Опыт:</b> ${esc(vacancy.experience)}\n` +
+    `💰 <b>Оплата:</b> ${esc(vacancy.payment)}\n` +
+    `🏠 <b>Условия:</b> ${esc(vacancy.conditions)}\n` +
+    `🔄 <b>График:</b> ${esc(vacancy.shift)}\n\n` +
+    `📞 <b>Контакт:</b> ${esc(vacancy.phone)}\n\n` +
+    `Работа | Вахта\n` +
+    `Вакансии, поиск и подбор рабочих специалистов`
+  );
+}
+
+function vacancyInlineKeyboard(vacancyId) {
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: "📩 Откликнуться",
+          url: `https://t.me/${BOT_USERNAME}?start=vacancy_${vacancyId}`,
+        },
+      ],
+      [
+        {
+          text: "📢 Канал «Работа | Вахта»",
+          url: `https://t.me/${String(
+            CHANNEL_USERNAME
+          ).replace("@", "")}`,
+        },
+      ],
+    ],
+  };
+}
+
+/* =========================
+   START
+========================= */
 
 async function handleStart(message) {
   const chatId = message.chat.id;
@@ -238,6 +342,13 @@ async function handleStart(message) {
     const vacancyId = Number(
       args.replace("vacancy_", "")
     );
+
+    if (!Number.isFinite(vacancyId)) {
+      return sendMessage(
+        chatId,
+        "❌ Некорректный номер вакансии."
+      );
+    }
 
     const rows = await sql`
       SELECT *
@@ -263,24 +374,41 @@ async function handleStart(message) {
 
     return sendMessage(
       chatId,
-      `📩 Отклик на вакансию\n\n${vacancy.title}\n\nВведите ваше имя и фамилию:`
+      `📩 <b>Отклик на вакансию</b>\n\n${vacancyText(
+        vacancy
+      )}\n\nВведите ваше имя и фамилию:`,
+      {
+        parse_mode: "HTML",
+      }
     );
   }
 
   await clearSession(chatId);
 
-  await sendMessage(
+  return sendMessage(
     chatId,
-    "👋 Добро пожаловать в «Работа | Вахта».\n\nЗдесь можно найти работу, разместить вакансию и оставить анкету специалиста.",
+    "👋 <b>Добро пожаловать в «Работа | Вахта».</b>\n\nЗдесь можно найти работу, разместить вакансию и оставить анкету специалиста.",
     {
+      parse_mode: "HTML",
       reply_markup: mainKeyboard(chatId),
     }
   );
 }
 
+/* =========================
+   CANDIDATE
+========================= */
+
 async function candidateFlow(message, session) {
   const chatId = message.chat.id;
   const value = String(message.text || "").trim();
+
+  if (!value) {
+    return sendMessage(
+      chatId,
+      "Пожалуйста, отправьте информацию текстом."
+    );
+  }
 
   if (session.step === "candidate_name") {
     await setSession(chatId, {
@@ -348,13 +476,10 @@ async function candidateFlow(message, session) {
   }
 
   if (session.step === "candidate_shift") {
-    await setSession(chatId, {
+    const updated = {
       ...session,
-      step: "candidate_save",
       shift: value,
-    });
-
-    const updated = await getSession(chatId);
+    };
 
     await sql`
       INSERT INTO candidates (
@@ -365,7 +490,8 @@ async function candidateFlow(message, session) {
         profession,
         experience,
         city,
-        shift
+        shift,
+        updated_at
       )
       VALUES (
         ${chatId},
@@ -375,7 +501,8 @@ async function candidateFlow(message, session) {
         ${updated.profession},
         ${updated.experience},
         ${updated.city},
-        ${updated.shift}
+        ${updated.shift},
+        NOW()
       )
     `;
 
@@ -383,13 +510,25 @@ async function candidateFlow(message, session) {
 
     await sendMessage(
       chatId,
-      "✅ Анкета сохранена!\n\nМы получили ваши данные."
+      "✅ <b>Анкета сохранена!</b>\n\nВаш профиль добавлен в базу специалистов.",
+      {
+        parse_mode: "HTML",
+      }
     );
 
     if (ADMIN_ID) {
       await sendMessage(
         ADMIN_ID,
-        `🆕 Новая анкета специалиста\n\nИмя: ${updated.name}\nТелефон: ${updated.phone}\nПрофессия: ${updated.profession}\nОпыт: ${updated.experience}\nГород: ${updated.city}\nВахта: ${updated.shift}`
+        `🆕 <b>Новая анкета специалиста</b>\n\n` +
+          `👤 ${esc(updated.name)}\n` +
+          `📞 ${esc(updated.phone)}\n` +
+          `🧰 ${esc(updated.profession)}\n` +
+          `⏱ ${esc(updated.experience)}\n` +
+          `📍 ${esc(updated.city)}\n` +
+          `🔄 Вахта: ${esc(updated.shift)}`,
+        {
+          parse_mode: "HTML",
+        }
       );
     }
 
@@ -397,9 +536,20 @@ async function candidateFlow(message, session) {
   }
 }
 
+/* =========================
+   VACANCY CREATION
+========================= */
+
 async function vacancyFlow(message, session) {
   const chatId = message.chat.id;
   const value = String(message.text || "").trim();
+
+  if (!value) {
+    return sendMessage(
+      chatId,
+      "Пожалуйста, отправьте информацию текстом."
+    );
+  }
 
   if (session.step === "vacancy_title") {
     await setSession(chatId, {
@@ -498,7 +648,7 @@ async function vacancyFlow(message, session) {
       phone: value,
     };
 
-    await sql`
+    const rows = await sql`
       INSERT INTO vacancies (
         chat_id,
         title,
@@ -508,7 +658,9 @@ async function vacancyFlow(message, session) {
         payment,
         conditions,
         shift,
-        phone
+        phone,
+        published,
+        closed
       )
       VALUES (
         ${chatId},
@@ -519,16 +671,22 @@ async function vacancyFlow(message, session) {
         ${updated.payment},
         ${updated.conditions},
         ${updated.shift},
-        ${updated.phone}
+        ${updated.phone},
+        FALSE,
+        FALSE
       )
+      RETURNING *
     `;
+
+    const vacancy = rows[0];
 
     await clearSession(chatId);
 
     await sendMessage(
       chatId,
-      "✅ Вакансия сохранена!\n\nОна отправлена администратору на проверку.",
+      `✅ <b>Вакансия №${vacancy.id} сохранена.</b>\n\nОна отправлена администратору на проверку.`,
       {
+        parse_mode: "HTML",
         reply_markup: employerKeyboard(),
       }
     );
@@ -536,11 +694,36 @@ async function vacancyFlow(message, session) {
     if (ADMIN_ID) {
       await sendMessage(
         ADMIN_ID,
-        `📋 Новая вакансия\n\nНазвание: ${updated.name}\nПрофессия: ${updated.profession}\nГород: ${updated.city}\nОпыт: ${updated.experience}\nОплата: ${updated.payment}\nУсловия: ${updated.conditions}\nВахта: ${updated.shift}\nТелефон: ${updated.phone}`
+        `📋 <b>Новая вакансия №${vacancy.id}</b>\n\n${vacancyText(
+          vacancy
+        )}`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "📢 Опубликовать",
+                  callback_data: `publish:${vacancy.id}`,
+                },
+              ],
+              [
+                {
+                  text: "❌ Закрыть",
+                  callback_data: `close:${vacancy.id}`,
+                },
+              ],
+            ],
+          },
+        }
       );
     }
   }
 }
+
+/* =========================
+   APPLICATION
+========================= */
 
 async function applicationFlow(message, session) {
   const chatId = message.chat.id;
@@ -597,7 +780,24 @@ async function applicationFlow(message, session) {
       );
     }
 
-    await sql`
+    const duplicate = await sql`
+      SELECT id
+      FROM applications
+      WHERE vacancy_id = ${vacancy.id}
+      AND candidate_chat_id = ${chatId}
+      LIMIT 1
+    `;
+
+    if (duplicate.length) {
+      await clearSession(chatId);
+
+      return mainMenu(
+        chatId,
+        "ℹ️ Вы уже откликались на эту вакансию."
+      );
+    }
+
+    const applicationRows = await sql`
       INSERT INTO applications (
         vacancy_id,
         candidate_chat_id,
@@ -616,26 +816,61 @@ async function applicationFlow(message, session) {
         ${message.from?.username || null},
         'new'
       )
+      RETURNING id
     `;
+
+    const applicationId =
+      applicationRows[0]?.id;
 
     await clearSession(chatId);
 
     await sendMessage(
       chatId,
-      "✅ Отклик отправлен!\n\nРаботодатель получил вашу заявку."
+      `✅ <b>Отклик отправлен!</b>\n\nЗаявка №${applicationId}\nРаботодатель получил ваши данные.`,
+      {
+        parse_mode: "HTML",
+      }
     );
 
     if (vacancy.chat_id) {
       await sendMessage(
         vacancy.chat_id,
-        `📩 Новый отклик!\n\nВакансия: ${vacancy.title}\nИмя: ${updated.name}\nТелефон: ${updated.phone}\nОпыт: ${updated.experience}`
+        `📩 <b>Новый отклик №${applicationId}</b>\n\n` +
+          `Вакансия: ${esc(vacancy.title)}\n` +
+          `Имя: ${esc(updated.name)}\n` +
+          `Телефон: ${esc(updated.phone)}\n` +
+          `Опыт: ${esc(updated.experience)}`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🤝 Пригласить",
+                  callback_data: `invite:${applicationId}`,
+                },
+                {
+                  text: "❌ Отказать",
+                  callback_data: `reject:${applicationId}`,
+                },
+              ],
+            ],
+          },
+        }
       );
     }
 
     if (ADMIN_ID) {
       await sendMessage(
         ADMIN_ID,
-        `📩 Новый отклик\n\nВакансия: ${vacancy.title}\nИмя: ${updated.name}\nТелефон: ${updated.phone}\nОпыт: ${updated.experience}`
+        `📩 <b>Новый отклик №${applicationId}</b>\n\n` +
+          `Вакансия: ${esc(vacancy.title)}\n` +
+          `Имя: ${esc(updated.name)}\n` +
+          `Телефон: ${esc(updated.phone)}\n` +
+          `Опыт: ${esc(updated.experience)}`,
+        {
+          parse_mode: "HTML",
+        }
       );
     }
 
@@ -643,11 +878,844 @@ async function applicationFlow(message, session) {
   }
 }
 
+/* =========================
+   PUBLISH VACANCY
+========================= */
+
+async function publishVacancy(vacancyId) {
+  const rows = await sql`
+    SELECT *
+    FROM vacancies
+    WHERE id = ${vacancyId}
+    AND closed = FALSE
+    LIMIT 1
+  `;
+
+  const vacancy = rows[0];
+
+  if (!vacancy) {
+    return {
+      ok: false,
+      message: "Вакансия не найдена или закрыта.",
+    };
+  }
+
+  const result = await telegram(
+    "sendMessage",
+    {
+      chat_id: CHANNEL_USERNAME,
+      text: vacancyText(vacancy),
+      parse_mode: "HTML",
+      reply_markup:
+        vacancyInlineKeyboard(vacancy.id),
+    }
+  );
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      message:
+        result.description ||
+        "Telegram не смог опубликовать вакансию.",
+    };
+  }
+
+  await sql`
+    UPDATE vacancies
+    SET
+      published = TRUE,
+      published_at = NOW(),
+      channel_message_id = ${result.result?.message_id || null}
+    WHERE id = ${vacancyId}
+  `;
+
+  return {
+    ok: true,
+    message: "Вакансия опубликована.",
+  };
+}
+
+/* =========================
+   ADMIN: SPECIALISTS
+========================= */
+
+async function showAllCandidates(chatId) {
+  const rows = await sql`
+    SELECT *
+    FROM candidates
+    ORDER BY created_at DESC
+    LIMIT 30
+  `;
+
+  if (!rows.length) {
+    return sendMessage(
+      chatId,
+      "👷 В базе пока нет специалистов."
+    );
+  }
+
+  let text =
+    "👷 <b>СПЕЦИАЛИСТЫ</b>\n\n";
+
+  for (const c of rows) {
+    text +=
+      `#${c.id} — <b>${esc(c.name)}</b>\n` +
+      `🧰 ${esc(c.profession)}\n` +
+      `⏱ ${esc(c.experience)}\n` +
+      `📍 ${esc(c.city)}\n` +
+      `📞 ${esc(c.phone)}\n` +
+      `🔄 Вахта: ${esc(c.shift)}\n\n`;
+  }
+
+  return sendMessage(chatId, text, {
+    parse_mode: "HTML",
+  });
+}
+
+/* =========================
+   ADMIN: VACANCIES
+========================= */
+
+async function showAllVacancies(chatId) {
+  const rows = await sql`
+    SELECT *
+    FROM vacancies
+    ORDER BY created_at DESC
+    LIMIT 30
+  `;
+
+  if (!rows.length) {
+    return sendMessage(
+      chatId,
+      "📋 Вакансий пока нет."
+    );
+  }
+
+  for (const vacancy of rows) {
+    const status = vacancy.closed
+      ? "🔴 Закрыта"
+      : vacancy.published
+      ? "🟢 Опубликована"
+      : "🟡 На проверке";
+
+    await sendMessage(
+      chatId,
+      `${vacancyText(vacancy)}\n\n<b>Статус:</b> ${status}`,
+      {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            ...(!vacancy.published &&
+            !vacancy.closed
+              ? [
+                  [
+                    {
+                      text: "📢 Опубликовать",
+                      callback_data: `publish:${vacancy.id}`,
+                    },
+                  ],
+                ]
+              : []),
+            ...(!vacancy.closed
+              ? [
+                  [
+                    {
+                      text: "🔒 Закрыть",
+                      callback_data: `close:${vacancy.id}`,
+                    },
+                  ],
+                ]
+              : []),
+          ],
+        },
+      }
+    );
+  }
+}
+
+/* =========================
+   ADMIN: APPLICATIONS
+========================= */
+
+async function showAllApplications(chatId) {
+  const rows = await sql`
+    SELECT
+      a.*,
+      v.title AS vacancy_title
+    FROM applications a
+    LEFT JOIN vacancies v
+      ON v.id = a.vacancy_id
+    ORDER BY a.created_at DESC
+    LIMIT 30
+  `;
+
+  if (!rows.length) {
+    return sendMessage(
+      chatId,
+      "📩 Откликов пока нет."
+    );
+  }
+
+  for (const a of rows) {
+    await sendMessage(
+      chatId,
+      `📩 <b>Отклик №${a.id}</b>\n\n` +
+        `📋 Вакансия: ${esc(a.vacancy_title)}\n` +
+        `👤 ${esc(a.name)}\n` +
+        `📞 ${esc(a.phone)}\n` +
+        `⏱ ${esc(a.experience)}\n` +
+        `📌 Статус: ${esc(a.status)}`,
+      {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🤝 Пригласить",
+                callback_data: `invite:${a.id}`,
+              },
+              {
+                text: "❌ Отказать",
+                callback_data: `reject:${a.id}`,
+              },
+            ],
+          ],
+        },
+      }
+    );
+  }
+}
+
+/* =========================
+   ADMIN: SEARCH
+========================= */
+
+async function searchCandidates(chatId, query) {
+  const q = `%${query}%`;
+
+  const rows = await sql`
+    SELECT *
+    FROM candidates
+    WHERE
+      profession ILIKE ${q}
+      OR city ILIKE ${q}
+      OR experience ILIKE ${q}
+      OR name ILIKE ${q}
+    ORDER BY created_at DESC
+    LIMIT 20
+  `;
+
+  if (!rows.length) {
+    return sendMessage(
+      chatId,
+      `🔎 По запросу «${query}» ничего не найдено.`
+    );
+  }
+
+  let text =
+    `🔎 <b>Результаты поиска: ${esc(
+      query
+    )}</b>\n\n`;
+
+  for (const c of rows) {
+    text +=
+      `👤 <b>${esc(c.name)}</b>\n` +
+      `🧰 ${esc(c.profession)}\n` +
+      `📍 ${esc(c.city)}\n` +
+      `⏱ ${esc(c.experience)}\n` +
+      `📞 ${esc(c.phone)}\n\n`;
+  }
+
+  return sendMessage(chatId, text, {
+    parse_mode: "HTML",
+  });
+}
+
+/* =========================
+   EMPLOYER: VACANCIES
+========================= */
+
+async function showEmployerVacancies(chatId) {
+  const rows = await sql`
+    SELECT *
+    FROM vacancies
+    WHERE chat_id = ${chatId}
+    ORDER BY created_at DESC
+    LIMIT 30
+  `;
+
+  if (!rows.length) {
+    return sendMessage(
+      chatId,
+      "📋 У вас пока нет вакансий."
+    );
+  }
+
+  for (const vacancy of rows) {
+    const status = vacancy.closed
+      ? "🔴 Закрыта"
+      : vacancy.published
+      ? "🟢 Опубликована"
+      : "🟡 На проверке";
+
+    await sendMessage(
+      chatId,
+      `${vacancyText(vacancy)}\n\n<b>${status}</b>`,
+      {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            ...(!vacancy.closed
+              ? [
+                  [
+                    {
+                      text: "📩 Отклики",
+                      callback_data: `vacapps:${vacancy.id}`,
+                    },
+                  ],
+                  [
+                    {
+                      text: "🔒 Закрыть",
+                      callback_data: `close:${vacancy.id}`,
+                    },
+                  ],
+                ]
+              : []),
+          ],
+        },
+      }
+    );
+  }
+}
+
+/* =========================
+   EMPLOYER APPLICATIONS
+========================= */
+
+async function showEmployerApplications(chatId) {
+  const rows = await sql`
+    SELECT
+      a.*,
+      v.title AS vacancy_title
+    FROM applications a
+    JOIN vacancies v
+      ON v.id = a.vacancy_id
+    WHERE v.chat_id = ${chatId}
+    ORDER BY a.created_at DESC
+    LIMIT 50
+  `;
+
+  if (!rows.length) {
+    return sendMessage(
+      chatId,
+      "📩 У вас пока нет откликов."
+    );
+  }
+
+  for (const a of rows) {
+    await sendMessage(
+      chatId,
+      `📩 <b>Отклик №${a.id}</b>\n\n` +
+        `📋 ${esc(a.vacancy_title)}\n` +
+        `👤 ${esc(a.name)}\n` +
+        `📞 ${esc(a.phone)}\n` +
+        `⏱ ${esc(a.experience)}\n` +
+        `📌 ${esc(a.status)}`,
+      {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🤝 Пригласить",
+                callback_data: `invite:${a.id}`,
+              },
+              {
+                text: "❌ Отказать",
+                callback_data: `reject:${a.id}`,
+              },
+            ],
+          ],
+        },
+      }
+    );
+  }
+}
+
+/* =========================
+   VACANCY APPLICATIONS
+========================= */
+
+async function showVacancyApplications(
+  chatId,
+  vacancyId
+) {
+  const vacancyRows = await sql`
+    SELECT *
+    FROM vacancies
+    WHERE id = ${vacancyId}
+    LIMIT 1
+  `;
+
+  const vacancy = vacancyRows[0];
+
+  if (!vacancy || String(vacancy.chat_id) !== String(chatId)) {
+    return sendMessage(
+      chatId,
+      "❌ Доступ запрещён."
+    );
+  }
+
+  const rows = await sql`
+    SELECT *
+    FROM applications
+    WHERE vacancy_id = ${vacancyId}
+    ORDER BY created_at DESC
+  `;
+
+  if (!rows.length) {
+    return sendMessage(
+      chatId,
+      "📩 На эту вакансию пока нет откликов."
+    );
+  }
+
+  for (const a of rows) {
+    await sendMessage(
+      chatId,
+      `📩 <b>Отклик №${a.id}</b>\n\n` +
+        `👤 ${esc(a.name)}\n` +
+        `📞 ${esc(a.phone)}\n` +
+        `⏱ ${esc(a.experience)}\n` +
+        `📌 ${esc(a.status)}`,
+      {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🤝 Пригласить",
+                callback_data: `invite:${a.id}`,
+              },
+              {
+                text: "❌ Отказать",
+                callback_data: `reject:${a.id}`,
+              },
+            ],
+          ],
+        },
+      }
+    );
+  }
+}
+
+/* =========================
+   STATUS
+========================= */
+
+async function changeApplicationStatus(
+  applicationId,
+  status
+) {
+  const rows = await sql`
+    UPDATE applications
+    SET status = ${status}
+    WHERE id = ${applicationId}
+    RETURNING *
+  `;
+
+  const application = rows[0];
+
+  if (!application) {
+    return {
+      ok: false,
+      message: "Отклик не найден.",
+    };
+  }
+
+  const vacancyRows = await sql`
+    SELECT *
+    FROM vacancies
+    WHERE id = ${application.vacancy_id}
+    LIMIT 1
+  `;
+
+  const vacancy = vacancyRows[0];
+
+  if (status === "invited") {
+    await sendMessage(
+      application.candidate_chat_id,
+      `🤝 <b>Вас приглашают на работу!</b>\n\n` +
+        `Вакансия: ${esc(
+          vacancy?.title || "Вакансия"
+        )}\n` +
+        `Работодатель получил ваши контакты и готов продолжить общение.\n\n` +
+        `📞 Контакт: ${esc(
+          vacancy?.phone || "уточняется"
+        )}`,
+      {
+        parse_mode: "HTML",
+      }
+    );
+  }
+
+  if (status === "rejected") {
+    await sendMessage(
+      application.candidate_chat_id,
+      `ℹ️ <b>Изменение по отклику</b>\n\n` +
+        `Вакансия: ${esc(
+          vacancy?.title || "Вакансия"
+        )}\n\n` +
+        `Работодатель пока не выбрал вашу кандидатуру.\n` +
+        `Не останавливайтесь — новые вакансии появляются регулярно.`,
+      {
+        parse_mode: "HTML",
+      }
+    );
+  }
+
+  return {
+    ok: true,
+    message:
+      status === "invited"
+        ? "Кандидат приглашён."
+        : "Кандидату отправлено уведомление.",
+  };
+}
+
+/* =========================
+   CALLBACKS
+========================= */
+
+async function handleCallbackQuery(callback) {
+  const chatId = callback.from.id;
+  const data = String(callback.data || "");
+
+  await answerCallbackQuery(
+    callback.id,
+    "Обрабатываю..."
+  );
+
+  if (data.startsWith("publish:")) {
+    if (!isAdmin(chatId)) {
+      return;
+    }
+
+    const vacancyId = Number(
+      data.split(":")[1]
+    );
+
+    const result =
+      await publishVacancy(vacancyId);
+
+    return sendMessage(
+      chatId,
+      result.ok
+        ? `✅ Вакансия №${vacancyId} опубликована в канале ${CHANNEL_USERNAME}.`
+        : `❌ ${result.message}`
+    );
+  }
+
+  if (data.startsWith("close:")) {
+    const vacancyId = Number(
+      data.split(":")[1]
+    );
+
+    const rows = await sql`
+      SELECT *
+      FROM vacancies
+      WHERE id = ${vacancyId}
+      LIMIT 1
+    `;
+
+    const vacancy = rows[0];
+
+    if (!vacancy) {
+      return sendMessage(
+        chatId,
+        "❌ Вакансия не найдена."
+      );
+    }
+
+    if (
+      !isAdmin(chatId) &&
+      String(vacancy.chat_id) !== String(chatId)
+    ) {
+      return sendMessage(
+        chatId,
+        "❌ У вас нет доступа к этой вакансии."
+      );
+    }
+
+    await sql`
+      UPDATE vacancies
+      SET closed = TRUE
+      WHERE id = ${vacancyId}
+    `;
+
+    return sendMessage(
+      chatId,
+      `🔒 Вакансия №${vacancyId} закрыта.`
+    );
+  }
+
+  if (data.startsWith("invite:")) {
+    const applicationId = Number(
+      data.split(":")[1]
+    );
+
+    const rows = await sql`
+      SELECT a.*, v.chat_id AS employer_chat_id
+      FROM applications a
+      JOIN vacancies v
+        ON v.id = a.vacancy_id
+      WHERE a.id = ${applicationId}
+      LIMIT 1
+    `;
+
+    const application = rows[0];
+
+    if (!application) {
+      return sendMessage(
+        chatId,
+        "❌ Отклик не найден."
+      );
+    }
+
+    if (
+      !isAdmin(chatId) &&
+      String(application.employer_chat_id) !==
+        String(chatId)
+    ) {
+      return sendMessage(
+        chatId,
+        "❌ У вас нет доступа к этому отклику."
+      );
+    }
+
+    const result =
+      await changeApplicationStatus(
+        applicationId,
+        "invited"
+      );
+
+    return sendMessage(
+      chatId,
+      `🤝 ${result.message}`
+    );
+  }
+
+  if (data.startsWith("reject:")) {
+    const applicationId = Number(
+      data.split(":")[1]
+    );
+
+    const rows = await sql`
+      SELECT a.*, v.chat_id AS employer_chat_id
+      FROM applications a
+      JOIN vacancies v
+        ON v.id = a.vacancy_id
+      WHERE a.id = ${applicationId}
+      LIMIT 1
+    `;
+
+    const application = rows[0];
+
+    if (!application) {
+      return sendMessage(
+        chatId,
+        "❌ Отклик не найден."
+      );
+    }
+
+    if (
+      !isAdmin(chatId) &&
+      String(application.employer_chat_id) !==
+        String(chatId)
+    ) {
+      return sendMessage(
+        chatId,
+        "❌ У вас нет доступа к этому отклику."
+      );
+    }
+
+    const result =
+      await changeApplicationStatus(
+        applicationId,
+        "rejected"
+      );
+
+    return sendMessage(
+      chatId,
+      `❌ ${result.message}`
+    );
+  }
+
+  if (data.startsWith("vacapps:")) {
+    const vacancyId = Number(
+      data.split(":")[1]
+    );
+
+    return showVacancyApplications(
+      chatId,
+      vacancyId
+    );
+  }
+}
+
+/* =========================
+   ADMIN MENU
+========================= */
+
+async function adminAction(
+  message,
+  value
+) {
+  const chatId = message.chat.id;
+
+  if (!isAdmin(chatId)) {
+    return mainMenu(chatId);
+  }
+
+  if (value === "👷 Все специалисты") {
+    return showAllCandidates(chatId);
+  }
+
+  if (value === "📋 Все вакансии") {
+    return showAllVacancies(chatId);
+  }
+
+  if (value === "📩 Все отклики") {
+    return showAllApplications(chatId);
+  }
+
+  if (value === "📢 Опубликовать вакансию") {
+    const rows = await sql`
+      SELECT *
+      FROM vacancies
+      WHERE closed = FALSE
+      AND published = FALSE
+      ORDER BY created_at DESC
+      LIMIT 20
+    `;
+
+    if (!rows.length) {
+      return sendMessage(
+        chatId,
+        "📢 Нет вакансий, ожидающих публикации."
+      );
+    }
+
+    for (const vacancy of rows) {
+      await sendMessage(
+        chatId,
+        `📢 <b>Вакансия №${vacancy.id}</b>\n\n${vacancyText(
+          vacancy
+        )}`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "📢 Опубликовать",
+                  callback_data: `publish:${vacancy.id}`,
+                },
+              ],
+              [
+                {
+                  text: "🔒 Закрыть",
+                  callback_data: `close:${vacancy.id}`,
+                },
+              ],
+            ],
+          },
+        }
+      );
+    }
+
+    return;
+  }
+
+  if (value === "🔎 Поиск специалиста") {
+    await setSession(chatId, {
+      step: "admin_search",
+    });
+
+    return sendMessage(
+      chatId,
+      "🔎 Введите профессию, город, имя или опыт для поиска.\n\nНапример:\nМонтажник\nМосква\nСварщик"
+    );
+  }
+
+  if (value === "📊 Статистика") {
+    const candidates =
+      await sql`SELECT COUNT(*)::int AS n FROM candidates`;
+
+    const vacancies =
+      await sql`SELECT COUNT(*)::int AS n FROM vacancies`;
+
+    const published =
+      await sql`
+        SELECT COUNT(*)::int AS n
+        FROM vacancies
+        WHERE published = TRUE
+        AND closed = FALSE
+      `;
+
+    const closed =
+      await sql`
+        SELECT COUNT(*)::int AS n
+        FROM vacancies
+        WHERE closed = TRUE
+      `;
+
+    const applications =
+      await sql`SELECT COUNT(*)::int AS n FROM applications`;
+
+    const newApplications =
+      await sql`
+        SELECT COUNT(*)::int AS n
+        FROM applications
+        WHERE status = 'new'
+      `;
+
+    const invited =
+      await sql`
+        SELECT COUNT(*)::int AS n
+        FROM applications
+        WHERE status = 'invited'
+      `;
+
+    return sendMessage(
+      chatId,
+      `📊 <b>СТАТИСТИКА «РАБОТА | ВАХТА»</b>\n\n` +
+        `👷 Специалистов: <b>${candidates[0].n}</b>\n` +
+        `📋 Всего вакансий: <b>${vacancies[0].n}</b>\n` +
+        `🟢 Активных: <b>${published[0].n}</b>\n` +
+        `🔴 Закрытых: <b>${closed[0].n}</b>\n` +
+        `📩 Всего откликов: <b>${applications[0].n}</b>\n` +
+        `🆕 Новых откликов: <b>${newApplications[0].n}</b>\n` +
+        `🤝 Приглашений: <b>${invited[0].n}</b>`,
+      {
+        parse_mode: "HTML",
+      }
+    );
+  }
+}
+
+/* =========================
+   MESSAGE HANDLER
+========================= */
+
 async function handleMessage(message) {
   const chatId = message.chat.id;
   const value = String(message.text || "").trim();
 
-  if (value === "/start" || value.startsWith("/start ")) {
+  if (
+    value === "/start" ||
+    value.startsWith("/start ")
+  ) {
     return handleStart(message);
   }
 
@@ -663,40 +1731,63 @@ async function handleMessage(message) {
     return mainMenu(chatId);
   }
 
+  /* ADMIN */
+
+  if (
+    isAdmin(chatId) &&
+    [
+      "👷 Все специалисты",
+      "📋 Все вакансии",
+      "📩 Все отклики",
+      "📊 Статистика",
+      "🔎 Поиск специалиста",
+      "📢 Опубликовать вакансию",
+    ].includes(value)
+  ) {
+    return adminAction(message, value);
+  }
+
+  if (value === "🔐 Админ-панель") {
+    if (!isAdmin(chatId)) {
+      return mainMenu(chatId);
+    }
+
+    return sendMessage(
+      chatId,
+      "🔐 <b>АДМИН-ПАНЕЛЬ</b>\n\nВыберите раздел:",
+      {
+        parse_mode: "HTML",
+        reply_markup: adminKeyboard(),
+      }
+    );
+  }
+
+  /* CANDIDATE */
+
   if (value === "👷 Я ищу работу") {
+    await clearSession(chatId);
+
     await setSession(chatId, {
       step: "candidate_name",
     });
 
     return sendMessage(
       chatId,
-      "👷 <b>Анкета специалиста</b>\n\nВведите имя и фамилию:",
+      "👷 <b>АНКЕТА СПЕЦИАЛИСТА</b>\n\nВведите имя и фамилию:",
       {
         parse_mode: "HTML",
       }
     );
   }
 
-  if (value === "📋 Разместить вакансию") {
-    await setSession(chatId, {
-      step: "vacancy_title",
-    });
+  /* EMPLOYER */
+
+  if (value === "🏢 Работодатель") {
+    await clearSession(chatId);
 
     return sendMessage(
       chatId,
-      "📋 <b>Создание вакансии</b>\n\nВведите название вакансии:",
-      {
-        parse_mode: "HTML",
-      }
-    );
-  }
-
-  if (
-    value === "🏢 Работодатель"
-  ) {
-    return sendMessage(
-      chatId,
-      "🏢 <b>Кабинет работодателя</b>\n\nЗдесь можно создавать вакансии и получать отклики.",
+      "🏢 <b>КАБИНЕТ РАБОТОДАТЕЛЯ</b>\n\nСоздавайте вакансии и получайте отклики специалистов.",
       {
         parse_mode: "HTML",
         reply_markup: employerKeyboard(),
@@ -705,63 +1796,60 @@ async function handleMessage(message) {
   }
 
   if (
-    value === "📞 Администратор"
+    value === "📋 Разместить вакансию" ||
+    value === "➕ Создать вакансию"
   ) {
-    return sendMessage(
-      chatId,
-      "📞 По вопросам сотрудничества обратитесь к администратору."
-    );
-  }
+    await clearSession(chatId);
 
-  if (
-    value === "🔐 Админ-панель"
-  ) {
-    if (
-      String(chatId) !== String(ADMIN_ID)
-    ) {
-      return mainMenu(chatId);
-    }
+    await setSession(chatId, {
+      step: "vacancy_title",
+    });
 
     return sendMessage(
       chatId,
-      "🔐 <b>Админ-панель</b>\n\nВыберите раздел:",
-      {
-        parse_mode: "HTML",
-        reply_markup: adminKeyboard(),
-      }
-    );
-  }
-
-  if (
-    value === "📊 Статистика"
-  ) {
-    if (
-      String(chatId) !== String(ADMIN_ID)
-    ) {
-      return;
-    }
-
-    const candidates =
-      await sql`SELECT COUNT(*)::int AS n FROM candidates`;
-
-    const vacancies =
-      await sql`SELECT COUNT(*)::int AS n FROM vacancies`;
-
-    const applications =
-      await sql`SELECT COUNT(*)::int AS n FROM applications`;
-
-    return sendMessage(
-      chatId,
-      `📊 <b>Статистика</b>\n\n👷 Специалистов: ${candidates[0].n}\n📋 Вакансий: ${vacancies[0].n}\n📩 Откликов: ${applications[0].n}`,
+      "📋 <b>СОЗДАНИЕ ВАКАНСИИ</b>\n\nВведите название вакансии:",
       {
         parse_mode: "HTML",
       }
     );
   }
+
+  if (value === "📋 Мои вакансии") {
+    return showEmployerVacancies(chatId);
+  }
+
+  if (value === "📩 Отклики") {
+    return showEmployerApplications(chatId);
+  }
+
+  if (value === "📞 Администратор") {
+    return sendMessage(
+      chatId,
+      "📞 <b>Администратор</b>\n\nПо вопросам сотрудничества обратитесь к администратору канала.",
+      {
+        parse_mode: "HTML",
+      }
+    );
+  }
+
+  /* SESSION */
 
   const session = await getSession(chatId);
 
   if (session) {
+    if (session.step === "admin_search") {
+      await clearSession(chatId);
+
+      if (!isAdmin(chatId)) {
+        return mainMenu(chatId);
+      }
+
+      return searchCandidates(
+        chatId,
+        value
+      );
+    }
+
     if (
       session.step?.startsWith("candidate_")
     ) {
@@ -796,15 +1884,35 @@ async function handleMessage(message) {
   );
 }
 
+/* =========================
+   HANDLER
+========================= */
+
 export default async function handler(
   req,
   res
 ) {
   try {
     if (req.method === "GET") {
-      if (
-        req.query?.setup === "1"
-      ) {
+      if (!BOT_TOKEN) {
+        return res.status(500).json({
+          ok: false,
+          error: "BOT_TOKEN is not configured",
+        });
+      }
+
+      if (req.query?.health === "1") {
+        return res.status(200).json({
+          ok: true,
+          service: "Работа | Вахта",
+          status: "online",
+          database: Boolean(POSTGRES_URL),
+          bot_username: BOT_USERNAME,
+          channel: CHANNEL_USERNAME,
+        });
+      }
+
+      if (req.query?.setup === "1") {
         const host = req.headers.host;
 
         const protocol =
@@ -863,6 +1971,12 @@ export default async function handler(
 
     const update = req.body;
 
+    if (update?.callback_query) {
+      await handleCallbackQuery(
+        update.callback_query
+      );
+    }
+
     if (update?.message) {
       await handleMessage(
         update.message
@@ -880,7 +1994,9 @@ export default async function handler(
 
     return res.status(500).json({
       ok: false,
-      error: error.message,
+      error:
+        error?.message ||
+        "Unknown error",
     });
   }
 }
