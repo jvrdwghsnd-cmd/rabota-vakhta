@@ -1,1598 +1,693 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#080808">
-
-<title>Работа | Вахта</title>
-
-<style>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  background: #080808;
-  color: #fff;
-  min-height: 100vh;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
-.container {
-  width: min(1100px, calc(100% - 28px));
-  margin: auto;
-}
-
-/* HEADER */
-
-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: rgba(8,8,8,.96);
-  border-bottom: 1px solid #242424;
-  backdrop-filter: blur(10px);
-}
-
-.header-inner {
-  min-height: 70px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-}
-
-.logo {
-  font-size: 20px;
-  font-weight: 900;
-  letter-spacing: 1px;
-}
-
-.logo span {
-  color: #d4af37;
-}
-
-.telegram {
-  padding: 10px 15px;
-  border: 1px solid #d4af37;
-  border-radius: 8px;
-  color: #d4af37;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-/* HERO */
-
-.hero {
-  text-align: center;
-  padding: 70px 0 45px;
-}
-
-.badge {
-  display: inline-block;
-  padding: 7px 13px;
-  border: 1px solid #4b3c14;
-  border-radius: 30px;
-  color: #d4af37;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 1px;
-  margin-bottom: 23px;
-}
-
-.hero h1 {
-  font-size: clamp(45px, 10vw, 86px);
-  line-height: .9;
-  letter-spacing: -3px;
-  font-weight: 900;
-}
-
-.gold {
-  color: #d4af37;
-}
-
-.hero p {
-  max-width: 650px;
-  margin: 23px auto 0;
-  color: #888;
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-/* MAIN MENU */
-
-.menu {
-  max-width: 760px;
-  margin: 35px auto 0;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 13px;
-}
-
-.menu button,
-.menu a {
-  min-height: 88px;
-  padding: 18px;
-  border-radius: 11px;
-  background: #121212;
-  border: 1px solid #2d2d2d;
-  color: white;
-  text-align: left;
-  transition: .2s;
-}
-
-.menu button:hover,
-.menu a:hover {
-  border-color: #d4af37;
-  transform: translateY(-2px);
-}
-
-.menu .primary {
-  background: #d4af37;
-  color: #080808;
-  border-color: #d4af37;
-}
-
-.menu strong {
-  display: block;
-  font-size: 14px;
-  margin-bottom: 7px;
-}
-
-.menu small {
-  color: #888;
-  font-size: 11px;
-}
-
-.menu .primary small {
-  color: #4d4018;
-}
-
-/* SEARCH */
-
-.search {
-  max-width: 760px;
-  margin: 22px auto 0;
-}
-
-.search input {
-  width: 100%;
-  padding: 17px 19px;
-  border-radius: 9px;
-  border: 1px solid #303030;
-  background: #111;
-  color: white;
-  outline: none;
-}
-
-.search input:focus {
-  border-color: #d4af37;
-}
-
-/* SECTIONS */
-
-section.page {
-  display: none;
-}
-
-section.page.active {
-  display: block;
-}
-
-.jobs-section {
-  padding: 30px 0 70px;
-}
-
-.section-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.section-head h2 {
-  font-size: 27px;
-}
-
-.count {
-  color: #777;
-  font-size: 13px;
-}
-
-/* JOBS */
-
-.jobs {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-}
-
-.job {
-  background: #111;
-  border: 1px solid #292929;
-  border-radius: 12px;
-  padding: 22px;
-  transition: .2s;
-}
-
-.job:hover {
-  border-color: #555;
-  transform: translateY(-2px);
-}
-
-.job h3 {
-  font-size: 20px;
-  margin-bottom: 12px;
-}
-
-.tag {
-  display: inline-block;
-  background: #211d10;
-  color: #d4af37;
-  border-radius: 5px;
-  padding: 6px 9px;
-  font-size: 10px;
-  font-weight: 900;
-  margin-bottom: 15px;
-}
-
-.info {
-  color: #999;
-  font-size: 13px;
-  line-height: 1.9;
-}
-
-.info strong {
-  color: #eee;
-}
-
-.apply {
-  width: 100%;
-  display: block;
-  margin-top: 18px;
-  padding: 14px;
-  background: #d4af37;
-  color: #080808;
-  border: 0;
-  border-radius: 7px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-/* FORMS */
-
-.form-page {
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 35px 0 70px;
-}
-
-.form-box {
-  background: #111;
-  border: 1px solid #292929;
-  border-radius: 14px;
-  padding: 25px;
-}
-
-.form-box h2 {
-  font-size: 28px;
-  margin-bottom: 8px;
-}
-
-.form-box > p {
-  color: #888;
-  font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 25px;
-}
-
-.field {
-  margin-bottom: 15px;
-}
-
-.field label {
-  display: block;
-  margin-bottom: 7px;
-  color: #aaa;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.field input,
-.field select,
-.field textarea {
-  width: 100%;
-  padding: 14px;
-  background: #0a0a0a;
-  color: white;
-  border: 1px solid #303030;
-  border-radius: 8px;
-  outline: none;
-}
-
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-  border-color: #d4af37;
-}
-
-.field textarea {
-  min-height: 110px;
-  resize: vertical;
-}
-
-.submit {
-  width: 100%;
-  padding: 15px;
-  border: 0;
-  border-radius: 8px;
-  background: #d4af37;
-  color: #080808;
-  font-weight: 900;
-  font-size: 12px;
-}
-
-.back {
-  display: inline-block;
-  margin-bottom: 18px;
-  color: #d4af37;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-/* APPLICATIONS */
-
-.application-list {
-  display: grid;
-  gap: 12px;
-}
-
-.application {
-  padding: 18px;
-  background: #111;
-  border: 1px solid #292929;
-  border-radius: 10px;
-}
-
-.application strong {
-  display: block;
-  margin-bottom: 7px;
-}
-
-.application span {
-  color: #888;
-  font-size: 13px;
-}
-
-/* CTA */
-
-.cta {
-  margin: 0 0 60px;
-  padding: 32px;
-  border: 1px solid #d4af37;
-  border-radius: 14px;
-  background: #111;
-  text-align: center;
-}
-
-.cta h2 {
-  font-size: 25px;
-  margin-bottom: 10px;
-}
-
-.cta p {
-  color: #888;
-  font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 20px;
-}
-
-.cta a {
-  display: inline-block;
-  padding: 14px 24px;
-  background: #d4af37;
-  color: #080808;
-  border-radius: 7px;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-/* FOOTER */
-
-footer {
-  border-top: 1px solid #222;
-  padding: 25px;
-  text-align: center;
-  color: #555;
-  font-size: 12px;
-}
-
-/* MOBILE */
-
-@media (max-width: 700px) {
-
-  .container {
-    width: calc(100% - 22px);
-  }
-
-  .hero {
-    padding: 52px 0 35px;
-  }
-
-  .hero h1 {
-    font-size: 52px;
-  }
-
-  .menu {
-    grid-template-columns: 1fr;
-  }
-
-  .jobs {
-    grid-template-columns: 1fr;
-  }
-
-  .cta {
-    padding: 27px 18px;
-  }
-
-  .form-box {
-    padding: 20px;
-  }
-
-  .logo {
-    font-size: 16px;
-  }
-
-  .telegram {
-    font-size: 10px;
-    padding: 9px 10px;
-  }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>РАБОТА | ВАХТА</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #080808;
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 28px 20px 20px;
+      text-align: center;
+      border-bottom: 1px solid #292929;
+    }
+
+    .logo {
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: 2px;
+    }
+
+    .logo span {
+      color: #d4af37;
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      color: #aaa;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    main {
+      max-width: 700px;
+      margin: auto;
+      padding: 25px 16px 60px;
+    }
+
+    .menu {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 35px;
+    }
+
+    button,
+    .menu-button {
+      width: 100%;
+      border: 1px solid #3a3a3a;
+      background: linear-gradient(145deg, #171717, #0d0d0d);
+      color: white;
+      padding: 19px;
+      border-radius: 14px;
+      cursor: pointer;
+      text-align: left;
+      transition: .2s;
+      text-decoration: none;
+      display: block;
+    }
+
+    button:hover,
+    .menu-button:hover {
+      border-color: #d4af37;
+      transform: translateY(-1px);
+    }
+
+    .menu-title {
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .menu-description {
+      color: #999;
+      margin-top: 5px;
+      font-size: 13px;
+    }
+
+    section {
+      display: none;
+    }
+
+    section.active {
+      display: block;
+    }
+
+    h2 {
+      margin-bottom: 18px;
+      font-size: 24px;
+    }
+
+    .back {
+      color: #d4af37;
+      margin-bottom: 20px;
+      cursor: pointer;
+      display: inline-block;
+    }
+
+    .vacancy {
+      border: 1px solid #292929;
+      border-radius: 15px;
+      padding: 18px;
+      margin-bottom: 14px;
+      background: #111;
+    }
+
+    .vacancy h3 {
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+
+    .vacancy p {
+      color: #aaa;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .apply {
+      background: #d4af37;
+      color: #080808;
+      text-align: center;
+      font-weight: 800;
+      border: none;
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #333;
+      background: #111;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: #d4af37;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .submit {
+      background: #d4af37;
+      color: #050505;
+      text-align: center;
+      font-weight: 900;
+      border: none;
+      padding: 17px;
+    }
+
+    .message {
+      margin-top: 15px;
+      padding: 14px;
+      border-radius: 10px;
+      display: none;
+      text-align: center;
+    }
+
+    .success {
+      background: #14351e;
+      color: #8ff0a4;
+    }
+
+    .error {
+      background: #3b1616;
+      color: #ff9a9a;
+    }
+
+    .telegram {
+      text-align: center;
+      background: #111;
+      border: 1px solid #292929;
+      padding: 22px;
+      border-radius: 15px;
+    }
+
+    .telegram a {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 14px 24px;
+      border-radius: 10px;
+      background: #d4af37;
+      color: #080808;
+      text-decoration: none;
+      font-weight: 900;
+    }
+  </style>
 </head>
 
 <body>
 
 <header>
-  <div class="container header-inner">
+  <div class="logo">
+    РАБОТА <span>|</span> ВАХТА
+  </div>
 
-    <a href="#" onclick="showPage('home'); return false;" class="logo">
-      РАБОТА <span>|</span> ВАХТА
-    </a>
-
-    <a
-      class="telegram"
-      href="https://t.me/vakhtovyk"
-      target="_blank"
-      rel="noopener"
-    >
-      TELEGRAM
-    </a>
-
+  <div class="subtitle">
+    Поиск вакансий, подбор специалистов<br>
+    и прямое взаимодействие с работодателями.
   </div>
 </header>
 
+<main>
 
-<!-- ================= HOME ================= -->
+  <!-- ГЛАВНАЯ -->
 
-<section id="home" class="page active">
+  <section id="home" class="active">
 
-  <div class="hero">
+    <div class="menu">
 
-    <div class="container">
+      <button onclick="showSection('vacancies')">
+        <div class="menu-title">🔎 НАЙТИ РАБОТУ</div>
+        <div class="menu-description">
+          Актуальные вакансии
+        </div>
+      </button>
 
-      <div class="badge">
-        ВАКАНСИИ • СПЕЦИАЛИСТЫ • РАБОТОДАТЕЛИ
-      </div>
+      <button onclick="showSection('specialist')">
+        <div class="menu-title">👷 Я СПЕЦИАЛИСТ</div>
+        <div class="menu-description">
+          Заполнить анкету
+        </div>
+      </button>
 
-      <h1>
-        РАБОТА<br>
-        <span class="gold">ВАХТА</span>
-      </h1>
+      <button onclick="showSection('employer')">
+        <div class="menu-title">🏢 Я РАБОТОДАТЕЛЬ</div>
+        <div class="menu-description">
+          Найти специалистов
+        </div>
+      </button>
 
-      <p>
-        Поиск вакансий, подбор специалистов
-        и прямое взаимодействие с работодателями.
-      </p>
-
-
-      <div class="menu">
-
-        <button
-          class="primary"
-          onclick="showPage('vacancies')"
-        >
-          <strong>🔎 НАЙТИ РАБОТУ</strong>
-          <small>Актуальные вакансии</small>
-        </button>
-
-
-        <button
-          onclick="showPage('specialist')"
-        >
-          <strong>👷 Я СПЕЦИАЛИСТ</strong>
-          <small>Заполнить анкету</small>
-        </button>
-
-
-        <button
-          onclick="showPage('employer')"
-        >
-          <strong>🏢 Я РАБОТОДАТЕЛЬ</strong>
-          <small>Найти специалистов</small>
-        </button>
-
-
-        <a
-          href="https://t.me/vakhtovyk"
-          target="_blank"
-          rel="noopener"
-        >
-          <strong>💬 TELEGRAM</strong>
-          <small>Новости и новые вакансии</small>
-        </a>
-
-      </div>
-
-
-      <div class="search">
-
-        <input
-          id="homeSearch"
-          type="text"
-          placeholder="Поиск по профессии..."
-          oninput="searchJobs(this.value)"
-        >
-
-      </div>
-
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- ================= VACANCIES ================= -->
-
-<section id="vacancies" class="page">
-
-  <div class="container jobs-section">
-
-    <a
-      href="#"
-      class="back"
-      onclick="showPage('home'); return false;"
-    >
-      ← НА ГЛАВНУЮ
-    </a>
-
-    <div class="section-head">
-
-      <h2>Вакансии</h2>
-
-      <span
-        class="count"
-        id="resultCount"
-      ></span>
-
-    </div>
-
-
-    <div class="search" style="margin:0 0 20px">
-
-      <input
-        id="vacancySearch"
-        type="text"
-        placeholder="Поиск по профессии..."
-        oninput="searchJobs(this.value)"
+      <a
+        class="menu-button"
+        href="https://t.me/vakhtovyk"
+        target="_blank"
       >
+        <div class="menu-title">💬 TELEGRAM</div>
+        <div class="menu-description">
+          Новости и новые вакансии
+        </div>
+      </a>
 
     </div>
-
-
-    <div class="jobs" id="jobs">
-
-
-      <article
-        class="job"
-        data-search="монтажник строительных лесов монтажник леса подмости"
-      >
-
-        <h3>
-          Монтажник строительных лесов
-        </h3>
-
-        <div class="tag">
-          МОНТАЖНИК
-        </div>
-
-        <div class="info">
-
-          👷 Специальность:
-          <strong>монтажник строительных лесов</strong><br>
-
-          📍 Формат:
-          <strong>вахта</strong>
-
-        </div>
-
-        <a
-          class="apply"
-          href="https://t.me/VakhtovykHelperBot"
-          target="_blank"
-          rel="noopener"
-        >
-          ОТКЛИКНУТЬСЯ →
-        </a>
-
-      </article>
-
-
-      <article
-        class="job"
-        data-search="монтажник жбк железобетон конструкции"
-      >
-
-        <h3>
-          Монтажник ЖБК
-        </h3>
-
-        <div class="tag">
-          МОНТАЖНИК ЖБК
-        </div>
-
-        <div class="info">
-
-          👷 Специальность:
-          <strong>монтажник ЖБК</strong><br>
-
-          📍 Формат:
-          <strong>вахта</strong>
-
-        </div>
-
-        <a
-          class="apply"
-          href="https://t.me/VakhtovykHelperBot"
-          target="_blank"
-          rel="noopener"
-        >
-          ОТКЛИКНУТЬСЯ →
-        </a>
-
-      </article>
-
-
-      <article
-        class="job"
-        data-search="сварщик сварка металлоконструкции"
-      >
-
-        <h3>
-          Сварщик
-        </h3>
-
-        <div class="tag">
-          СВАРЩИК
-        </div>
-
-        <div class="info">
-
-          👷 Специальность:
-          <strong>сварщик</strong><br>
-
-          📍 Формат:
-          <strong>вахта</strong>
-
-        </div>
-
-        <a
-          class="apply"
-          href="https://t.me/VakhtovykHelperBot"
-          target="_blank"
-          rel="noopener"
-        >
-          ОТКЛИКНУТЬСЯ →
-        </a>
-
-      </article>
-
-
-      <article
-        class="job"
-        data-search="изолировщик изоляция теплоизоляция"
-      >
-
-        <h3>
-          Изолировщик
-        </h3>
-
-        <div class="tag">
-          ИЗОЛИРОВЩИК
-        </div>
-
-        <div class="info">
-
-          👷 Специальность:
-          <strong>изолировщик</strong><br>
-
-          📍 Формат:
-          <strong>вахта</strong>
-
-        </div>
-
-        <a
-          class="apply"
-          href="https://t.me/VakhtovykHelperBot"
-          target="_blank"
-          rel="noopener"
-        >
-          ОТКЛИКНУТЬСЯ →
-        </a>
-
-      </article>
-
-
-      <article
-        class="job"
-        data-search="маляр покраска промышленный маляр"
-      >
-
-        <h3>
-          Маляр
-        </h3>
-
-        <div class="tag">
-          МАЛЯР
-        </div>
-
-        <div class="info">
-
-          👷 Специальность:
-          <strong>маляр</strong><br>
-
-          📍 Формат:
-          <strong>вахта</strong>
-
-        </div>
-
-        <a
-          class="apply"
-          href="https://t.me/VakhtovykHelperBot"
-          target="_blank"
-          rel="noopener"
-        >
-          ОТКЛИКНУТЬСЯ →
-        </a>
-
-      </article>
-
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- ================= SPECIALIST ================= -->
-
-<section id="specialist" class="page">
-
-  <div class="container form-page">
-
-    <a
-      href="#"
-      class="back"
-      onclick="showPage('home'); return false;"
-    >
-      ← НА ГЛАВНУЮ
-    </a>
-
-    <div class="form-box">
-
-      <h2>👷 Анкета специалиста</h2>
-
-      <p>
-        Заполните основные данные. После отправки
-        можно продолжить оформление через Telegram.
-      </p>
-
-
-      <form id="specialistForm">
-
-        <div class="field">
-          <label>Имя</label>
-          <input
-            name="name"
-            required
-            placeholder="Ваше имя"
-          >
-        </div>
-
-
-        <div class="field">
-          <label>Телефон</label>
-          <input
-            name="phone"
-            type="tel"
-            required
-            placeholder="+7"
-          >
-        </div>
-
-
-        <div class="field">
-          <label>Профессия</label>
-
-          <select name="profession" required>
-
-            <option value="">
-              Выберите профессию
-            </option>
-
-            <option>
-              Монтажник строительных лесов
-            </option>
-
-            <option>
-              Монтажник ЖБК
-            </option>
-
-            <option>
-              Сварщик
-            </option>
-
-            <option>
-              Изолировщик
-            </option>
-
-            <option>
-              Маляр
-            </option>
-
-            <option>
-              Стропальщик
-            </option>
-
-            <option>
-              Арматурщик
-            </option>
-
-            <option>
-              Другая профессия
-            </option>
-
-          </select>
-
-        </div>
-
-
-        <div class="field">
-          <label>Город</label>
-
-          <input
-            name="city"
-            required
-            placeholder="Ваш город"
-          >
-
-        </div>
-
-
-        <div class="field">
-          <label>Готовность к вахте</label>
-
-          <select name="shift" required>
-
-            <option value="">
-              Выберите вариант
-            </option>
-
-            <option>
-              Да
-            </option>
-
-            <option>
-              Нет
-            </option>
-
-            <option>
-              Обсудим
-            </option>
-
-          </select>
-
-        </div>
-
-
-        <div class="field">
-
-          <label>
-            Дополнительная информация
-          </label>
-
-          <textarea
-            name="comment"
-            placeholder="Напишите дополнительные сведения"
-          ></textarea>
-
-        </div>
-
-
-        <button
-          class="submit"
-          type="submit"
-        >
-          ОТПРАВИТЬ АНКЕТУ →
-        </button>
-
-      </form>
-
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- ================= EMPLOYER ================= -->
-
-<section id="employer" class="page">
-
-  <div class="container form-page">
-
-    <a
-      href="#"
-      class="back"
-      onclick="showPage('home'); return false;"
-    >
-      ← НА ГЛАВНУЮ
-    </a>
-
-    <div class="form-box">
-
-      <h2>🏢 Заявка работодателя</h2>
-
-      <p>
-        Оставьте заявку на подбор специалистов.
-        Мы сохраним её для дальнейшей обработки.
-      </p>
-
-
-      <form id="employerForm">
-
-        <div class="field">
-          <label>Название организации</label>
-
-          <input
-            name="company"
-            required
-            placeholder="Название организации"
-          >
-
-        </div>
-
-
-        <div class="field">
-          <label>Контактное лицо</label>
-
-          <input
-            name="contact"
-            required
-            placeholder="Имя"
-          >
-
-        </div>
-
-
-        <div class="field">
-          <label>Телефон</label>
-
-          <input
-            name="phone"
-            type="tel"
-            required
-            placeholder="+7"
-          >
-
-        </div>
-
-
-        <div class="field">
-          <label>Какие специалисты нужны?</label>
-
-          <select name="profession" required>
-
-            <option value="">
-              Выберите профессию
-            </option>
-
-            <option>
-              Монтажники строительных лесов
-            </option>
-
-            <option>
-              Монтажники ЖБК
-            </option>
-
-            <option>
-              Сварщики
-            </option>
-
-            <option>
-              Изолировщики
-            </option>
-
-            <option>
-              Маляры
-            </option>
-
-            <option>
-              Стропальщики
-            </option>
-
-            <option>
-              Арматурщики
-            </option>
-
-            <option>
-              Другая профессия
-            </option>
-
-          </select>
-
-        </div>
-
-
-        <div class="field">
-          <label>Количество специалистов</label>
-
-          <input
-            name="count"
-            type="number"
-            min="1"
-            required
-            placeholder="Например: 10"
-          >
-
-        </div>
-
-
-        <div class="field">
-          <label>Город / объект</label>
-
-          <input
-            name="location"
-            required
-            placeholder="Город или объект"
-          >
-
-        </div>
-
-
-        <div class="field">
-
-          <label>
-            Условия работы
-          </label>
-
-          <textarea
-            name="conditions"
-            placeholder="График, проживание, питание и другие условия"
-          ></textarea>
-
-        </div>
-
-
-        <button
-          class="submit"
-          type="submit"
-        >
-          ОТПРАВИТЬ ЗАЯВКУ →
-        </button>
-
-      </form>
-
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- ================= APPLICATIONS ================= -->
-
-<section id="applications" class="page">
-
-  <div class="container form-page">
-
-    <a
-      href="#"
-      class="back"
-      onclick="showPage('home'); return false;"
-    >
-      ← НА ГЛАВНУЮ
-    </a>
-
-    <div class="form-box">
-
-      <h2>📋 Мои заявки</h2>
-
-      <p>
-        Заявки, отправленные с этого устройства.
-      </p>
-
-      <div
-        id="applicationList"
-        class="application-list"
-      ></div>
-
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- ================= CTA ================= -->
-
-<div class="container">
-
-  <section class="cta">
-
-    <h2>
-      Нужна работа или специалисты?
-    </h2>
-
-    <p>
-      Выберите нужный раздел и отправьте заявку.
-    </p>
-
-    <a
-      href="https://t.me/VakhtovykHelperBot"
-      target="_blank"
-      rel="noopener"
-    >
-      ОТКРЫТЬ TELEGRAM-БОТА →
-    </a>
 
   </section>
 
-</div>
+
+  <!-- ВАКАНСИИ -->
+
+  <section id="vacancies">
+
+    <div class="back" onclick="showSection('home')">
+      ← Назад
+    </div>
+
+    <h2>🔎 Актуальные вакансии</h2>
+
+    <div class="vacancy">
+      <h3>Монтажник строительных лесов</h3>
+      <p>
+        Работа на строительных объектах.
+        Вахтовый формат. Условия обсуждаются с работодателем.
+      </p>
+
+      <button
+        class="apply"
+        onclick="openBot('Монтажник строительных лесов')"
+      >
+        ОТКЛИКНУТЬСЯ
+      </button>
+    </div>
+
+    <div class="vacancy">
+      <h3>Монтажник ЖБК</h3>
+      <p>
+        Монтаж железобетонных конструкций.
+        Работа на объектах. Вахтовый формат.
+      </p>
+
+      <button
+        class="apply"
+        onclick="openBot('Монтажник ЖБК')"
+      >
+        ОТКЛИКНУТЬСЯ
+      </button>
+    </div>
+
+    <div class="vacancy">
+      <h3>Сварщик</h3>
+      <p>
+        Сварочные работы на строительных и промышленных объектах.
+        Вахтовый формат.
+      </p>
+
+      <button
+        class="apply"
+        onclick="openBot('Сварщик')"
+      >
+        ОТКЛИКНУТЬСЯ
+      </button>
+    </div>
+
+    <div class="vacancy">
+      <h3>Изолировщик</h3>
+      <p>
+        Теплоизоляционные работы на промышленных объектах.
+        Вахтовый формат.
+      </p>
+
+      <button
+        class="apply"
+        onclick="openBot('Изолировщик')"
+      >
+        ОТКЛИКНУТЬСЯ
+      </button>
+    </div>
+
+    <div class="vacancy">
+      <h3>Маляр</h3>
+      <p>
+        Малярные и отделочные работы.
+        Вахтовый формат.
+      </p>
+
+      <button
+        class="apply"
+        onclick="openBot('Маляр')"
+      >
+        ОТКЛИКНУТЬСЯ
+      </button>
+    </div>
+
+  </section>
 
 
-<footer>
-  © 2026 РАБОТА | ВАХТА
-</footer>
+  <!-- СПЕЦИАЛИСТ -->
+
+  <section id="specialist">
+
+    <div class="back" onclick="showSection('home')">
+      ← Назад
+    </div>
+
+    <h2>👷 Анкета специалиста</h2>
+
+    <form id="specialistForm">
+
+      <input
+        id="specName"
+        type="text"
+        placeholder="Ваше имя"
+        required
+      >
+
+      <input
+        id="specPhone"
+        type="tel"
+        placeholder="Телефон"
+        required
+      >
+
+      <input
+        id="specProfession"
+        type="text"
+        placeholder="Профессия"
+        required
+      >
+
+      <input
+        id="specCity"
+        type="text"
+        placeholder="Город"
+        required
+      >
+
+      <select id="specShift" required>
+        <option value="">Готовность к вахте</option>
+        <option value="Да">Да</option>
+        <option value="Нет">Нет</option>
+      </select>
+
+      <textarea
+        id="specInfo"
+        placeholder="Дополнительная информация"
+      ></textarea>
+
+      <button class="submit" type="submit">
+        ОТПРАВИТЬ АНКЕТУ
+      </button>
+
+    </form>
+
+    <div id="specialistMessage" class="message"></div>
+
+  </section>
+
+
+  <!-- РАБОТОДАТЕЛЬ -->
+
+  <section id="employer">
+
+    <div class="back" onclick="showSection('home')">
+      ← Назад
+    </div>
+
+    <h2>🏢 Заявка работодателя</h2>
+
+    <form id="employerForm">
+
+      <input
+        id="company"
+        type="text"
+        placeholder="Название организации"
+        required
+      >
+
+      <input
+        id="contact"
+        type="text"
+        placeholder="Контактное лицо"
+        required
+      >
+
+      <input
+        id="employerPhone"
+        type="tel"
+        placeholder="Телефон"
+        required
+      >
+
+      <input
+        id="neededProfession"
+        type="text"
+        placeholder="Какие специалисты нужны?"
+        required
+      >
+
+      <input
+        id="specialists"
+        type="number"
+        min="1"
+        placeholder="Количество специалистов"
+        required
+      >
+
+      <input
+        id="objectCity"
+        type="text"
+        placeholder="Город / объект"
+        required
+      >
+
+      <textarea
+        id="conditions"
+        placeholder="Условия работы"
+      ></textarea>
+
+      <button class="submit" type="submit">
+        ОТПРАВИТЬ ЗАЯВКУ
+      </button>
+
+    </form>
+
+    <div id="employerMessage" class="message"></div>
+
+  </section>
+
+
+  <!-- TELEGRAM -->
+
+  <section id="telegram">
+
+    <div class="back" onclick="showSection('home')">
+      ← Назад
+    </div>
+
+    <div class="telegram">
+
+      <h2>💬 TELEGRAM</h2>
+
+      <p>
+        Новости, новые вакансии и полезная информация
+        для специалистов.
+      </p>
+
+      <a
+        href="https://t.me/vakhtovyk"
+        target="_blank"
+      >
+        ПЕРЕЙТИ В TELEGRAM
+      </a>
+
+    </div>
+
+  </section>
+
+</main>
 
 
 <script>
 
-/* ================= NAVIGATION ================= */
+  function showSection(id) {
 
-function showPage(pageId) {
-
-  document
-    .querySelectorAll(".page")
-    .forEach(page => {
-      page.classList.remove("active");
+    document.querySelectorAll("section").forEach(section => {
+      section.classList.remove("active");
     });
 
-  const page =
-    document.getElementById(pageId);
+    document.getElementById(id).classList.add("active");
 
-  if (page) {
-    page.classList.add("active");
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
   }
 
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
 
-  if (pageId === "applications") {
-    renderApplications();
+  async function sendApplication(data, messageElement) {
+
+    messageElement.style.display = "block";
+    messageElement.className = "message";
+    messageElement.textContent = "Отправляем заявку...";
+
+    try {
+
+      const response = await fetch("/api/applications", {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(data)
+
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "Ошибка");
+      }
+
+      messageElement.className =
+        "message success";
+
+      messageElement.textContent =
+        "✅ Заявка успешно отправлена. Мы получили ваши данные.";
+
+      return true;
+
+    } catch (error) {
+
+      console.error(error);
+
+      messageElement.className =
+        "message error";
+
+      messageElement.textContent =
+        "❌ Не удалось отправить заявку. Попробуйте ещё раз.";
+
+      return false;
+    }
   }
-}
 
 
-/* ================= SEARCH ================= */
+  document
+    .getElementById("specialistForm")
+    .addEventListener("submit", async function(event) {
 
-function searchJobs(value) {
+      event.preventDefault();
 
-  const query =
-    value
-      .trim()
-      .toLowerCase();
+      const message =
+        document.getElementById("specialistMessage");
 
-  const jobs =
-    document.querySelectorAll(".job");
+      const success = await sendApplication({
 
-  let visible = 0;
+        type: "specialist",
 
-  jobs.forEach(job => {
+        name:
+          document.getElementById("specName").value,
+
+        phone:
+          document.getElementById("specPhone").value,
+
+        profession:
+          document.getElementById("specProfession").value,
+
+        city:
+          document.getElementById("specCity").value,
+
+        shift:
+          document.getElementById("specShift").value,
+
+        info:
+          document.getElementById("specInfo").value
+
+      }, message);
+
+
+      if (success) {
+        document.getElementById("specialistForm").reset();
+      }
+
+    });
+
+
+  document
+    .getElementById("employerForm")
+    .addEventListener("submit", async function(event) {
+
+      event.preventDefault();
+
+      const message =
+        document.getElementById("employerMessage");
+
+      const success = await sendApplication({
+
+        type: "employer",
+
+        company:
+          document.getElementById("company").value,
+
+        contact:
+          document.getElementById("contact").value,
+
+        phone:
+          document.getElementById("employerPhone").value,
+
+        profession:
+          document.getElementById("neededProfession").value,
+
+        specialists:
+          document.getElementById("specialists").value,
+
+        objectCity:
+          document.getElementById("objectCity").value,
+
+        conditions:
+          document.getElementById("conditions").value
+
+      }, message);
+
+
+      if (success) {
+        document.getElementById("employerForm").reset();
+      }
+
+    });
+
+
+  function openBot(profession) {
 
     const text =
-      job
-        .getAttribute("data-search")
-        .toLowerCase();
-
-    if (
-      query === "" ||
-      text.includes(query)
-    ) {
-
-      job.style.display = "";
-
-      visible++;
-
-    } else {
-
-      job.style.display = "none";
-
-    }
-
-  });
-
-  const counter =
-    document.getElementById("resultCount");
-
-  if (counter) {
-    counter.textContent =
-      visible + " " +
-      getWord(visible);
-  }
-
-  const homeSearch =
-    document.getElementById("homeSearch");
-
-  const vacancySearch =
-    document.getElementById("vacancySearch");
-
-  if (
-    document.activeElement === homeSearch &&
-    vacancySearch
-  ) {
-    vacancySearch.value = value;
-  }
-
-  if (
-    document.activeElement === vacancySearch &&
-    homeSearch
-  ) {
-    homeSearch.value = value;
-  }
-}
-
-
-function getWord(number) {
-
-  if (
-    number % 10 === 1 &&
-    number % 100 !== 11
-  ) {
-    return "вакансия";
-  }
-
-  if (
-    number % 10 >= 2 &&
-    number % 10 <= 4 &&
-    (
-      number % 100 < 10 ||
-      number % 100 >= 20
-    )
-  ) {
-    return "вакансии";
-  }
-
-  return "вакансий";
-}
-
-
-/* ================= STORAGE ================= */
-
-function getApplications() {
-
-  try {
-
-    return JSON.parse(
-      localStorage.getItem("rabota_vakhta_applications")
-    ) || [];
-
-  } catch {
-
-    return [];
-
-  }
-}
-
-
-function saveApplication(application) {
-
-  const applications =
-    getApplications();
-
-  applications.push({
-    ...application,
-    date: new Date().toLocaleString("ru-RU")
-  });
-
-  localStorage.setItem(
-    "rabota_vakhta_applications",
-    JSON.stringify(applications)
-  );
-}
-
-
-/* ================= SPECIALIST FORM ================= */
-
-document
-  .getElementById("specialistForm")
-  .addEventListener("submit", function(event) {
-
-    event.preventDefault();
-
-    const data =
-      new FormData(this);
-
-    const application = {
-
-      type: "Специалист",
-
-      name:
-        data.get("name"),
-
-      phone:
-        data.get("phone"),
-
-      profession:
-        data.get("profession"),
-
-      city:
-        data.get("city"),
-
-      shift:
-        data.get("shift"),
-
-      comment:
-        data.get("comment")
-
-    };
-
-    saveApplication(application);
-
-    alert(
-      "Анкета принята.\n\n" +
-      "Для продолжения можно открыть Telegram-бот."
-    );
-
-    this.reset();
+      encodeURIComponent(
+        "Здравствуйте! Хочу откликнуться на вакансию: " +
+        profession
+      );
 
     window.open(
-      "https://t.me/VakhtovykHelperBot",
+      "https://t.me/VakhtovykHelperBot?start=" +
+      text,
       "_blank"
     );
 
-  });
-
-
-/* ================= EMPLOYER FORM ================= */
-
-document
-  .getElementById("employerForm")
-  .addEventListener("submit", function(event) {
-
-    event.preventDefault();
-
-    const data =
-      new FormData(this);
-
-    const application = {
-
-      type: "Работодатель",
-
-      company:
-        data.get("company"),
-
-      contact:
-        data.get("contact"),
-
-      phone:
-        data.get("phone"),
-
-      profession:
-        data.get("profession"),
-
-      count:
-        data.get("count"),
-
-      location:
-        data.get("location"),
-
-      conditions:
-        data.get("conditions")
-
-    };
-
-    saveApplication(application);
-
-    alert(
-      "Заявка работодателя сохранена."
-    );
-
-    this.reset();
-
-    showPage("applications");
-
-  });
-
-
-/* ================= APPLICATIONS ================= */
-
-function renderApplications() {
-
-  const container =
-    document.getElementById("applicationList");
-
-  const applications =
-    getApplications();
-
-  if (!applications.length) {
-
-    container.innerHTML =
-      '<div class="application">' +
-      '<strong>Заявок пока нет</strong>' +
-      '<span>Отправленные формы появятся здесь.</span>' +
-      '</div>';
-
-    return;
   }
-
-
-  container.innerHTML =
-    applications
-      .map((item, index) => {
-
-        let html =
-          '<div class="application">';
-
-        html +=
-          '<strong>' +
-          (index + 1) +
-          '. ' +
-          item.type +
-          '</strong>';
-
-        if (item.name) {
-          html +=
-            '<span>Имя: ' +
-            escapeHtml(item.name) +
-            '</span><br>';
-        }
-
-        if (item.company) {
-          html +=
-            '<span>Организация: ' +
-            escapeHtml(item.company) +
-            '</span><br>';
-        }
-
-        if (item.phone) {
-          html +=
-            '<span>Телефон: ' +
-            escapeHtml(item.phone) +
-            '</span><br>';
-        }
-
-        if (item.profession) {
-          html +=
-            '<span>Профессия: ' +
-            escapeHtml(item.profession) +
-            '</span><br>';
-        }
-
-        if (item.count) {
-          html +=
-            '<span>Количество: ' +
-            escapeHtml(item.count) +
-            '</span><br>';
-        }
-
-        if (item.city) {
-          html +=
-            '<span>Город: ' +
-            escapeHtml(item.city) +
-            '</span><br>';
-        }
-
-        if (item.location) {
-          html +=
-            '<span>Объект: ' +
-            escapeHtml(item.location) +
-            '</span><br>';
-        }
-
-        html +=
-          '<span>Дата: ' +
-          escapeHtml(item.date) +
-          '</span>';
-
-        html +=
-          '</div>';
-
-        return html;
-
-      })
-      .join("");
-
-}
-
-
-/* ================= SECURITY ================= */
-
-function escapeHtml(value) {
-
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-
-}
-
-
-/* ================= INIT ================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  function() {
-
-    const jobs =
-      document.querySelectorAll(".job");
-
-    const counter =
-      document.getElementById("resultCount");
-
-    if (counter) {
-
-      counter.textContent =
-        jobs.length + " " +
-        getWord(jobs.length);
-
-    }
-
-  }
-);
 
 </script>
 
