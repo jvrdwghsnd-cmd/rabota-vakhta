@@ -1,354 +1,324 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#080808">
-
-<title>Работа | Вахта</title>
-
-<style>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  background: #080808;
-  color: #fff;
-  min-height: 100vh;
-}
-
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
-.container {
-  width: min(1100px, calc(100% - 32px));
-  margin: 0 auto;
-}
-
-/* HEADER */
-
-header {
-  padding: 20px 0;
-  border-bottom: 1px solid #242424;
-}
-
-.header-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo {
-  font-size: 20px;
-  font-weight: 900;
-  letter-spacing: 1px;
-}
-
-.logo span {
-  color: #d4af37;
-}
-
-.telegram {
-  border: 1px solid #3a3a3a;
-  border-radius: 8px;
-  padding: 10px 15px;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-/* HERO */
-
-.hero {
-  text-align: center;
-  padding: 75px 0 55px;
-}
-
-.badge {
-  display: inline-block;
-  border: 1px solid #3b3118;
-  color: #d4af37;
-  padding: 7px 13px;
-  border-radius: 30px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  margin-bottom: 24px;
-}
-
-.hero h1 {
-  font-size: clamp(42px, 9vw, 82px);
-  line-height: .95;
-  font-weight: 900;
-  letter-spacing: -2px;
-}
-
-.hero h1 span {
-  color: #d4af37;
-}
-
-.hero p {
-  color: #888;
-  font-size: 16px;
-  line-height: 1.6;
-  max-width: 620px;
-  margin: 24px auto 0;
-}
-
-/* BUTTONS */
-
-.main-buttons {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  max-width: 700px;
-  margin: 35px auto 0;
-}
-
-.main-btn {
-  padding: 20px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 900;
-  border: 1px solid #333;
-  background: #151515;
-  transition: .2s;
-}
-
-.main-btn:hover {
-  transform: translateY(-2px);
-  border-color: #d4af37;
-}
-
-.main-btn.gold {
-  background: #d4af37;
-  color: #080808;
-  border-color: #d4af37;
-}
-
-.main-btn small {
-  display: block;
-  margin-top: 7px;
-  font-size: 11px;
-  opacity: .65;
-  font-weight: 500;
-}
-
-/* SEARCH */
-
-.search {
-  max-width: 700px;
-  margin: 25px auto 0;
-}
-
-.search input {
-  width: 100%;
-  padding: 17px 20px;
-  background: #111;
-  border: 1px solid #292929;
-  border-radius: 9px;
-  color: #fff;
-  font-size: 15px;
-  outline: none;
-}
-
-.search input:focus {
-  border-color: #d4af37;
-}
-
-/* JOBS */
-
-.jobs-section {
-  padding: 20px 0 70px;
-}
-
-.section-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.section-title h2 {
-  font-size: 27px;
-}
-
-#resultCount {
-  color: #777;
-  font-size: 13px;
-}
-
-.jobs {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.job {
-  background: #111;
-  border: 1px solid #252525;
-  border-radius: 12px;
-  padding: 22px;
-  transition: .2s;
-}
-
-.job:hover {
-  border-color: #555;
-  transform: translateY(-2px);
-}
-
-.job h3 {
-  font-size: 20px;
-  margin-bottom: 12px;
-}
-
-.profession {
-  display: inline-block;
-  background: #211d10;
-  color: #d4af37;
-  padding: 6px 9px;
-  border-radius: 5px;
-  font-size: 10px;
-  font-weight: 900;
-  margin-bottom: 15px;
-}
-
-.info {
-  color: #999;
-  font-size: 13px;
-  line-height: 1.8;
-}
-
-.info strong {
-  color: #ddd;
-}
-
-.apply {
-  display: block;
-  text-align: center;
-  margin-top: 18px;
-  padding: 13px;
-  background: #d4af37;
-  color: #080808;
-  border-radius: 7px;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-/* CTA */
-
-.cta {
-  text-align: center;
-  border: 1px solid #292929;
-  background: #111;
-  border-radius: 14px;
-  padding: 40px 20px;
-  margin-bottom: 60px;
-}
-
-.cta h2 {
-  font-size: 26px;
-  margin-bottom: 10px;
-}
-
-.cta p {
-  color: #888;
-  margin-bottom: 22px;
-}
-
-.cta a {
-  display: inline-block;
-  background: #d4af37;
-  color: #080808;
-  padding: 14px 25px;
-  border-radius: 7px;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-/* FOOTER */
-
-footer {
-  border-top: 1px solid #222;
-  text-align: center;
-  padding: 25px;
-  color: #555;
-  font-size: 12px;
-}
-
-/* MOBILE */
-
-@media (max-width: 700px) {
-
-  .hero {
-    padding: 55px 0 40px;
-  }
-
-  .main-buttons {
-    grid-template-columns: 1fr;
-  }
-
-  .jobs {
-    grid-template-columns: 1fr;
-  }
-
-  .logo {
-    font-size: 17px;
-  }
-
-  .telegram {
-    font-size: 10px;
-    padding: 9px 11px;
-  }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080808">
+  <title>Работа | Вахта — Вакансии</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #080808;
+      color: #ffffff;
+      min-height: 100vh;
+    }
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+    .container {
+      width: min(1100px, calc(100% - 30px));
+      margin: 0 auto;
+    }
+    /* HEADER */
+    header {
+      padding: 20px 0;
+      border-bottom: 1px solid #242424;
+      background: #080808;
+    }
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+    }
+    .logo {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+    .logo span {
+      color: #d4af37;
+    }
+    .telegram-btn {
+      padding: 10px 16px;
+      border: 1px solid #d4af37;
+      border-radius: 8px;
+      color: #d4af37;
+      font-size: 12px;
+      font-weight: 900;
+      transition: .2s;
+    }
+    .telegram-btn:hover {
+      background: #d4af37;
+      color: #080808;
+    }
+    /* HERO */
+    .hero {
+      text-align: center;
+      padding: 70px 0 45px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 7px 14px;
+      border: 1px solid #4a3b13;
+      border-radius: 30px;
+      color: #d4af37;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-bottom: 25px;
+    }
+    .hero h1 {
+      font-size: clamp(42px, 9vw, 80px);
+      line-height: .95;
+      font-weight: 900;
+      letter-spacing: -2px;
+    }
+    .hero h1 span {
+      color: #d4af37;
+    }
+    .hero p {
+      max-width: 650px;
+      margin: 22px auto 0;
+      color: #8d8d8d;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    /* MAIN BUTTONS */
+    .main-buttons {
+      max-width: 760px;
+      margin: 35px auto 0;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .main-btn {
+      display: block;
+      padding: 19px;
+      background: #121212;
+      border: 1px solid #303030;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 900;
+      transition: .2s;
+    }
+    .main-btn:hover {
+      border-color: #d4af37;
+      transform: translateY(-2px);
+    }
+    .main-btn.gold {
+      background: #d4af37;
+      color: #080808;
+      border-color: #d4af37;
+    }
+    .main-btn small {
+      display: block;
+      margin-top: 7px;
+      font-size: 11px;
+      font-weight: 500;
+      opacity: .7;
+    }
+    /* SEARCH */
+    .search {
+      max-width: 760px;
+      margin: 25px auto 0;
+    }
+    .search input {
+      width: 100%;
+      padding: 17px 20px;
+      background: #111111;
+      border: 1px solid #303030;
+      border-radius: 9px;
+      color: #ffffff;
+      font-size: 15px;
+      outline: none;
+    }
+    .search input:focus {
+      border-color: #d4af37;
+    }
+    /* VACANCIES */
+    .jobs-section {
+      padding: 25px 0 65px;
+    }
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .section-title h2 {
+      font-size: 28px;
+    }
+    #resultCount {
+      color: #777;
+      font-size: 13px;
+    }
+    .jobs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .job {
+      background: #111111;
+      border: 1px solid #292929;
+      border-radius: 12px;
+      padding: 23px;
+      transition: .2s;
+    }
+    .job:hover {
+      border-color: #555555;
+      transform: translateY(-2px);
+    }
+    .job h3 {
+      font-size: 20px;
+      margin-bottom: 13px;
+    }
+    .profession {
+      display: inline-block;
+      padding: 6px 10px;
+      background: #211d10;
+      color: #d4af37;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 900;
+      margin-bottom: 16px;
+    }
+    .info {
+      color: #999999;
+      font-size: 14px;
+      line-height: 1.9;
+    }
+    .info strong {
+      color: #eeeeee;
+    }
+    .apply {
+      display: block;
+      margin-top: 20px;
+      padding: 14px;
+      background: #d4af37;
+      color: #080808;
+      border-radius: 7px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 900;
+      transition: .2s;
+    }
+    .apply:hover {
+      background: #f0cc52;
+      transform: translateY(-1px);
+    }
+    /* CTA */
+    .cta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 25px;
+      background: #111111;
+      border: 1px solid #d4af37;
+      border-radius: 14px;
+      padding: 30px;
+      margin-bottom: 60px;
+    }
+    .cta-text h2 {
+      font-size: 25px;
+      margin-bottom: 9px;
+    }
+    .cta-text p {
+      color: #888888;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .cta-button {
+      flex-shrink: 0;
+      padding: 14px 24px;
+      background: #d4af37;
+      color: #080808;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    /* FOOTER */
+    footer {
+      border-top: 1px solid #222222;
+      text-align: center;
+      padding: 25px;
+      color: #555555;
+      font-size: 12px;
+    }
+    /* MOBILE */
+    @media (max-width: 700px) {
+      .container {
+        width: min(100% - 24px, 600px);
+      }
+      .hero {
+        padding: 50px 0 35px;
+      }
+      .hero h1 {
+        font-size: 50px;
+      }
+      .main-buttons {
+        grid-template-columns: 1fr;
+      }
+      .jobs {
+        grid-template-columns: 1fr;
+      }
+      .cta {
+        flex-direction: column;
+        text-align: center;
+      }
+      .cta-button {
+        width: 100%;
+        text-align: center;
+      }
+      .logo {
+        font-size: 17px;
+      }
+      .telegram-btn {
+        font-size: 10px;
+        padding: 9px 11px;
+      }
+    }
+  </style>
 </head>
-
 <body>
-
 <header>
   <div class="container header-inner">
-
     <div class="logo">
       РАБОТА <span>|</span> ВАХТА
     </div>
-
     <a
-      class="telegram"
+      class="telegram-btn"
       href="https://t.me/vakhtovyk"
       target="_blank"
+      rel="noopener"
     >
       TELEGRAM
     </a>
-
   </div>
 </header>
-
 <section class="hero">
-
   <div class="container">
-
     <div class="badge">
       ВАКАНСИИ • СПЕЦИАЛИСТЫ • РАБОТОДАТЕЛИ
     </div>
-
     <h1>
       РАБОТА<br>
       <span>ВАХТА</span>
     </h1>
-
     <p>
       Платформа для поиска работы, специалистов
-      и прямого взаимодействия с работодателями.
+      и взаимодействия с работодателями.
     </p>
-
     <div class="main-buttons">
-
       <a
         class="main-btn gold"
         href="#vacancies"
@@ -356,319 +326,268 @@ footer {
         🔎 НАЙТИ РАБОТУ
         <small>Актуальные вакансии</small>
       </a>
-
       <a
         class="main-btn"
         href="https://t.me/VakhtovykHelperBot"
         target="_blank"
+        rel="noopener"
       >
         👷 Я СПЕЦИАЛИСТ
         <small>Оставить свою анкету</small>
       </a>
-
       <a
         class="main-btn"
         href="https://t.me/VakhtovykHelperBot"
         target="_blank"
+        rel="noopener"
       >
         🏢 Я РАБОТОДАТЕЛЬ
         <small>Найти специалистов</small>
       </a>
-
       <a
         class="main-btn"
         href="https://t.me/vakhtovyk"
         target="_blank"
+        rel="noopener"
       >
         💬 TELEGRAM
         <small>Новости и новые вакансии</small>
       </a>
-
     </div>
-
     <div class="search">
-
       <input
         type="text"
         id="searchInput"
         placeholder="Поиск по профессии..."
+        autocomplete="off"
       >
-
     </div>
-
   </div>
-
 </section>
-
 <main class="container">
-
 <section
   class="jobs-section"
   id="vacancies"
 >
-
   <div class="section-title">
-
     <h2>Вакансии</h2>
-
     <span id="resultCount"></span>
-
   </div>
-
   <div
     class="jobs"
     id="jobs"
   >
-
+    <!-- МОНТАЖНИК ЛЕСОВ -->
     <article
       class="job"
       data-search="монтажник строительных лесов монтажник леса подмости"
     >
-
-      <h3>Монтажник строительных лесов</h3>
-
+      <h3>
+        Монтажник строительных лесов
+      </h3>
       <div class="profession">
         МОНТАЖНИК
       </div>
-
       <div class="info">
         👷 Специальность:
         <strong>монтажник строительных лесов</strong><br>
-
         📍 Работа:
-        <strong>вахта</strong><br>
-
-        🛠 Опыт:
-        <strong>требуется опыт</strong>
+        <strong>вахта</strong>
       </div>
-
       <a
         class="apply"
         href="https://t.me/VakhtovykHelperBot"
         target="_blank"
+        rel="noopener"
       >
-        ОТКЛИКНУТЬСЯ
+        ОТКЛИКНУТЬСЯ →
       </a>
-
     </article>
-
+    <!-- МОНТАЖНИК ЖБК -->
     <article
       class="job"
       data-search="монтажник жбк железобетон бетон конструкции"
     >
-
-      <h3>Монтажник ЖБК</h3>
-
+      <h3>
+        Монтажник ЖБК
+      </h3>
       <div class="profession">
         МОНТАЖНИК ЖБК
       </div>
-
       <div class="info">
         👷 Специальность:
         <strong>монтажник ЖБК</strong><br>
-
         📍 Работа:
-        <strong>вахта</strong><br>
-
-        🛠 Опыт:
-        <strong>опыт работы приветствуется</strong>
+        <strong>вахта</strong>
       </div>
-
       <a
         class="apply"
         href="https://t.me/VakhtovykHelperBot"
         target="_blank"
+        rel="noopener"
       >
-        ОТКЛИКНУТЬСЯ
+        ОТКЛИКНУТЬСЯ →
       </a>
-
     </article>
-
+    <!-- СВАРЩИК -->
     <article
       class="job"
       data-search="сварщик сварка металлоконструкции"
     >
-
-      <h3>Сварщик</h3>
-
+      <h3>
+        Сварщик
+      </h3>
       <div class="profession">
         СВАРЩИК
       </div>
-
       <div class="info">
         👷 Специальность:
         <strong>сварщик</strong><br>
-
         📍 Работа:
-        <strong>вахта</strong><br>
-
-        🛠 Опыт:
-        <strong>требуется опыт</strong>
+        <strong>вахта</strong>
       </div>
-
       <a
         class="apply"
         href="https://t.me/VakhtovykHelperBot"
         target="_blank"
+        rel="noopener"
       >
-        ОТКЛИКНУТЬСЯ
+        ОТКЛИКНУТЬСЯ →
       </a>
-
     </article>
-
+    <!-- ИЗОЛИРОВЩИК -->
     <article
       class="job"
       data-search="изолировщик изоляция теплоизоляция"
     >
-
-      <h3>Изолировщик</h3>
-
+      <h3>
+        Изолировщик
+      </h3>
       <div class="profession">
         ИЗОЛИРОВЩИК
       </div>
-
       <div class="info">
         👷 Специальность:
         <strong>изолировщик</strong><br>
-
         📍 Работа:
-        <strong>вахта</strong><br>
-
-        🛠 Опыт:
-        <strong>опыт работы</strong>
+        <strong>вахта</strong>
       </div>
-
       <a
         class="apply"
         href="https://t.me/VakhtovykHelperBot"
         target="_blank"
+        rel="noopener"
       >
-        ОТКЛИКНУТЬСЯ
+        ОТКЛИКНУТЬСЯ →
       </a>
-
     </article>
-
+    <!-- МАЛЯР -->
     <article
       class="job"
       data-search="маляр покраска промышленный маляр"
     >
-
-      <h3>Маляр</h3>
-
+      <h3>
+        Маляр
+      </h3>
       <div class="profession">
         МАЛЯР
       </div>
-
       <div class="info">
         👷 Специальность:
         <strong>маляр</strong><br>
-
         📍 Работа:
-        <strong>вахта</strong><br>
-
-        🛠 Опыт:
-        <strong>опыт работы</strong>
+        <strong>вахта</strong>
       </div>
-
       <a
         class="apply"
         href="https://t.me/VakhtovykHelperBot"
         target="_blank"
+        rel="noopener"
       >
-        ОТКЛИКНУТЬСЯ
+        ОТКЛИКНУТЬСЯ →
       </a>
-
     </article>
-
   </div>
-
 </section>
-
+<!-- CTA -->
 <section class="cta">
-
-  <h2>Есть опыт? Найдём работу.</h2>
-
-  <p>
-    Заполни анкету специалиста — мы сможем
-    использовать её для подбора подходящих вакансий.
-  </p>
-
+  <div class="cta-text">
+    <h2>
+      Ищете работу?
+    </h2>
+    <p>
+      Заполните анкету специалиста и получайте
+      подходящие вакансии.
+    </p>
+  </div>
   <a
+    class="cta-button"
     href="https://t.me/VakhtovykHelperBot"
     target="_blank"
+    rel="noopener"
   >
-    ЗАПОЛНИТЬ АНКЕТУ
+    ЗАПОЛНИТЬ АНКЕТУ →
   </a>
-
 </section>
-
 </main>
-
 <footer>
   © 2026 РАБОТА | ВАХТА
 </footer>
-
 <script>
-
-const searchInput =
-  document.getElementById("searchInput");
-
-const jobs =
-  document.querySelectorAll(".job");
-
-const resultCount =
-  document.getElementById("resultCount");
-
-function updateSearch() {
-
-  const query =
-    searchInput.value
-      .trim()
-      .toLowerCase();
-
-  let visible = 0;
-
-  jobs.forEach(job => {
-
-    const text =
-      job
-        .getAttribute("data-search")
-        .toLowerCase();
-
-    if (!query || text.includes(query)) {
-
-      job.style.display = "";
-
-      visible++;
-
-    } else {
-
-      job.style.display = "none";
-
+  const searchInput =
+    document.getElementById("searchInput");
+  const jobs =
+    document.querySelectorAll(".job");
+  const resultCount =
+    document.getElementById("resultCount");
+  function getWord(number) {
+    if (
+      number % 10 === 1 &&
+      number % 100 !== 11
+    ) {
+      return "вакансия";
     }
-
-  });
-
-  let word = "вакансий";
-
-  if (visible === 1) {
-    word = "вакансия";
-  } else if (visible >= 2 && visible <= 4) {
-    word = "вакансии";
+    if (
+      number % 10 >= 2 &&
+      number % 10 <= 4 &&
+      (
+        number % 100 < 10 ||
+        number % 100 >= 20
+      )
+    ) {
+      return "вакансии";
+    }
+    return "вакансий";
   }
-
-  resultCount.textContent =
-    visible + " " + word;
-}
-
-searchInput.addEventListener(
-  "input",
-  updateSearch
-);
-
-updateSearch();
-
+  function updateSearch() {
+    const query =
+      searchInput.value
+        .trim()
+        .toLowerCase();
+    let visible = 0;
+    jobs.forEach(job => {
+      const text =
+        job
+          .getAttribute("data-search")
+          .toLowerCase();
+      if (
+        query === "" ||
+        text.includes(query)
+      ) {
+        job.style.display = "";
+        visible++;
+      } else {
+        job.style.display = "none";
+      }
+    });
+    resultCount.textContent =
+      visible + " " + getWord(visible);
+  }
+  searchInput.addEventListener(
+    "input",
+    updateSearch
+  );
+  updateSearch();
 </script>
-
 </body>
 </html>
