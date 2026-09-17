@@ -3,6 +3,9 @@ import { neon } from "@neondatabase/serverless";
 const sql = neon(process.env.POSTGRES_URL);
 
 export default async function handler(req, res) {
+  // =========================
+  // POST — сохранение заявки
+  // =========================
   if (req.method === "POST") {
     try {
       const {
@@ -18,7 +21,7 @@ export default async function handler(req, res) {
         specialists,
         objectCity,
         conditions
-      } = req.body;
+      } = req.body || {};
 
       if (!type) {
         return res.status(400).json({
@@ -27,23 +30,20 @@ export default async function handler(req, res) {
         });
       }
 
+      // Добавляем новые поля в существующую таблицу.
+      // Старые анкеты при этом НЕ удаляются.
       await sql`
-        CREATE TABLE IF NOT EXISTS applications (
-          id SERIAL PRIMARY KEY,
-          type TEXT NOT NULL,
-          name TEXT,
-          phone TEXT,
-          profession TEXT,
-          city TEXT,
-          shift TEXT,
-          info TEXT,
-          company TEXT,
-          contact TEXT,
-          specialists TEXT,
-          object_city TEXT,
-          conditions TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
+        ALTER TABLE applications
+        ADD COLUMN IF NOT EXISTS type TEXT,
+        ADD COLUMN IF NOT EXISTS city TEXT,
+        ADD COLUMN IF NOT EXISTS shift TEXT,
+        ADD COLUMN IF NOT EXISTS info TEXT,
+        ADD COLUMN IF NOT EXISTS company TEXT,
+        ADD COLUMN IF NOT EXISTS contact TEXT,
+        ADD COLUMN IF NOT EXISTS profession TEXT,
+        ADD COLUMN IF NOT EXISTS specialists TEXT,
+        ADD COLUMN IF NOT EXISTS object_city TEXT,
+        ADD COLUMN IF NOT EXISTS conditions TEXT
       `;
 
       await sql`
@@ -59,7 +59,8 @@ export default async function handler(req, res) {
           contact,
           specialists,
           object_city,
-          conditions
+          conditions,
+          status
         )
         VALUES (
           ${type},
@@ -73,7 +74,8 @@ export default async function handler(req, res) {
           ${contact || null},
           ${specialists || null},
           ${objectCity || null},
-          ${conditions || null}
+          ${conditions || null},
+          'new'
         )
       `;
 
@@ -83,7 +85,7 @@ export default async function handler(req, res) {
       });
 
     } catch (error) {
-      console.error(error);
+      console.error("APPLICATION ERROR:", error);
 
       return res.status(500).json({
         ok: false,
@@ -92,6 +94,9 @@ export default async function handler(req, res) {
     }
   }
 
+  // =========================
+  // GET — получение заявок
+  // =========================
   if (req.method === "GET") {
     try {
       const applications = await sql`
@@ -106,7 +111,7 @@ export default async function handler(req, res) {
       });
 
     } catch (error) {
-      console.error(error);
+      console.error("GET APPLICATIONS ERROR:", error);
 
       return res.status(500).json({
         ok: false,
