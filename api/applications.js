@@ -4,112 +4,38 @@ const sql = neon(process.env.POSTGRES_URL);
 
 export default async function handler(req, res) {
   try {
-    // =========================
-    // POST — новая заявка с сайта
-    // =========================
+    await sql`
+      CREATE TABLE IF NOT EXISTS web_applications (
+        id SERIAL PRIMARY KEY,
+        type TEXT NOT NULL,
+        name TEXT,
+        phone TEXT,
+        profession TEXT,
+        city TEXT,
+        shift TEXT,
+        info TEXT,
+        company TEXT,
+        contact TEXT,
+        specialists TEXT,
+        object_city TEXT,
+        conditions TEXT,
+        status TEXT DEFAULT 'new',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
     if (req.method === "POST") {
-      const data = req.body || {};
+      const body = req.body || {};
 
-      const {
-        type,
-        name,
-        phone,
-        profession,
-        city,
-        shift,
-        info,
-        company,
-        contact,
-        specialists,
-        objectCity,
-        conditions
-      } = data;
-
-      if (!type) {
+      if (!body.type) {
         return res.status(400).json({
           ok: false,
           error: "Не указан тип заявки"
         });
       }
 
-      // Создаём необходимые дополнительные поля,
-      // если их ещё нет.
       await sql`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS type TEXT
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS city TEXT
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS shift TEXT
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS info TEXT
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS company TEXT
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS contact TEXT
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS profession TEXT
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS specialists TEXT
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS object_city TEXT
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS conditions TEXT
-      `;
-
-      // Старые поля делаем необязательными,
-      // чтобы заявки с сайта могли сохраняться
-      // без vacancy_id и Telegram chat_id.
-      await sql`
-        ALTER TABLE applications
-        ALTER COLUMN vacancy_id DROP NOT NULL
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ALTER COLUMN candidate_chat_id DROP NOT NULL
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ALTER COLUMN experience DROP NOT NULL
-      `;
-
-      await sql`
-        ALTER TABLE applications
-        ALTER COLUMN telegram_username DROP NOT NULL
-      `;
-
-      // Сохраняем заявку.
-      await sql`
-        INSERT INTO applications (
+        INSERT INTO web_applications (
           type,
           name,
           phone,
@@ -125,35 +51,32 @@ export default async function handler(req, res) {
           status
         )
         VALUES (
-          ${type},
-          ${name || null},
-          ${phone || null},
-          ${profession || null},
-          ${city || null},
-          ${shift || null},
-          ${info || null},
-          ${company || null},
-          ${contact || null},
-          ${specialists || null},
-          ${objectCity || null},
-          ${conditions || null},
+          ${String(body.type)},
+          ${body.name ? String(body.name) : null},
+          ${body.phone ? String(body.phone) : null},
+          ${body.profession ? String(body.profession) : null},
+          ${body.city ? String(body.city) : null},
+          ${body.shift ? String(body.shift) : null},
+          ${body.info ? String(body.info) : null},
+          ${body.company ? String(body.company) : null},
+          ${body.contact ? String(body.contact) : null},
+          ${body.specialists ? String(body.specialists) : null},
+          ${body.objectCity ? String(body.objectCity) : null},
+          ${body.conditions ? String(body.conditions) : null},
           'new'
         )
       `;
 
       return res.status(200).json({
         ok: true,
-        message: "Заявка успешно отправлена"
+        message: "Анкета успешно отправлена"
       });
     }
 
-    // =========================
-    // GET — получить заявки
-    // =========================
     if (req.method === "GET") {
       const applications = await sql`
         SELECT *
-        FROM applications
+        FROM web_applications
         ORDER BY created_at DESC
       `;
 
@@ -163,9 +86,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // =========================
-    // Остальные методы
-    // =========================
     return res.status(405).json({
       ok: false,
       error: "Метод не поддерживается"
@@ -176,7 +96,7 @@ export default async function handler(req, res) {
 
     return res.status(500).json({
       ok: false,
-      error: "Не удалось сохранить заявку"
+      error: "Не удалось отправить заявку"
     });
   }
 }
