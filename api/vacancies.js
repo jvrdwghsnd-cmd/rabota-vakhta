@@ -1,12 +1,11 @@
 import { neon } from "@neondatabase/serverless";
 
 const POSTGRES_URL = process.env.POSTGRES_URL;
-
 const sql = POSTGRES_URL ? neon(POSTGRES_URL) : null;
 
 export default async function handler(req, res) {
   try {
-    if (!POSTGRES_URL) {
+    if (!POSTGRES_URL || !sql) {
       return res.status(500).json({
         ok: false,
         error: "POSTGRES_URL is not configured",
@@ -18,7 +17,7 @@ export default async function handler(req, res) {
         id,
         title,
         profession,
-        city AS location,
+        location,
         experience,
         payment,
         conditions,
