@@ -1,9 +1,17 @@
 import { neon } from "@neondatabase/serverless";
 
-const sql = neon(process.env.POSTGRES_URL);
+const POSTGRES_URL = process.env.POSTGRES_URL;
+const sql = POSTGRES_URL ? neon(POSTGRES_URL) : null;
 
 export default async function handler(req, res) {
   try {
+    if (!POSTGRES_URL) {
+      return res.status(500).json({
+        ok: false,
+        error: "POSTGRES_URL is not configured",
+      });
+    }
+
     const vacancies = await sql`
       SELECT
         id,
@@ -16,8 +24,8 @@ export default async function handler(req, res) {
         shift,
         published_at
       FROM vacancies
-      WHERE published = true
-        AND closed = false
+      WHERE published = TRUE
+        AND closed = FALSE
       ORDER BY
         published_at DESC NULLS LAST,
         id DESC
@@ -25,15 +33,15 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ok: true,
-      vacancies
+      vacancies,
     });
-
   } catch (error) {
     console.error("VACANCIES API ERROR:", error);
 
     return res.status(500).json({
       ok: false,
-      error: "Ошибка загрузки вакансий"
+      error: "Ошибка загрузки вакансий",
+      details: error?.message || "Unknown error",
     });
   }
 }
