@@ -3,7 +3,8 @@ import { neon } from "@neondatabase/serverless";
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const POSTGRES_URL = process.env.POSTGRES_URL;
 const ADMIN_ID = process.env.ADMIN_ID || "";
-const CHANNEL_USERNAME = process.env.CHANNEL_USERNAME || "@vakhtovyk";
+const CHANNEL_USERNAME =
+  process.env.CHANNEL_USERNAME || "@vakhtovyk";
 const BOT_USERNAME =
   process.env.BOT_USERNAME || "VakhtovykHelperBot";
 
@@ -14,6 +15,10 @@ const sql = POSTGRES_URL ? neon(POSTGRES_URL) : null;
 ========================= */
 
 async function telegram(method, data = {}) {
+  if (!BOT_TOKEN) {
+    throw new Error("BOT_TOKEN is not configured");
+  }
+
   const response = await fetch(
     `https://api.telegram.org/bot${BOT_TOKEN}/${method}`,
     {
@@ -44,6 +49,10 @@ async function answerCallbackQuery(id, text = "") {
   });
 }
 
+/* =========================
+   HELPERS
+========================= */
+
 function esc(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -60,6 +69,12 @@ function isAdmin(chatId) {
 ========================= */
 
 async function initDatabase() {
+  if (!sql) {
+    throw new Error("POSTGRES_URL is not configured");
+  }
+
+  /* Сессии */
+
   await sql`
     CREATE TABLE IF NOT EXISTS bot_sessions (
       chat_id BIGINT PRIMARY KEY,
@@ -77,6 +92,8 @@ async function initDatabase() {
     )
   `;
 
+  /* Специалисты */
+
   await sql`
     CREATE TABLE IF NOT EXISTS candidates (
       id BIGSERIAL PRIMARY KEY,
@@ -92,6 +109,8 @@ async function initDatabase() {
     )
   `;
 
+  /* Вакансии */
+
   await sql`
     CREATE TABLE IF NOT EXISTS vacancies (
       id BIGSERIAL PRIMARY KEY,
@@ -99,6 +118,7 @@ async function initDatabase() {
       title TEXT,
       profession TEXT,
       city TEXT,
+      location TEXT,
       experience TEXT,
       payment TEXT,
       conditions TEXT,
@@ -109,6 +129,8 @@ async function initDatabase() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+
+  /* Отклики */
 
   await sql`
     CREATE TABLE IF NOT EXISTS applications (
@@ -124,10 +146,17 @@ async function initDatabase() {
     )
   `;
 
-  /*
-    Безопасно добавляем дополнительные поля,
-    если их ещё нет.
-  */
+  /* Совместимость со старой базой */
+
+  await sql`
+    ALTER TABLE vacancies
+    ADD COLUMN IF NOT EXISTS city TEXT
+  `;
+
+  await sql`
+    ALTER TABLE vacancies
+    ADD COLUMN IF NOT EXISTS location TEXT
+  `;
 
   await sql`
     ALTER TABLE vacancies
@@ -142,6 +171,22 @@ async function initDatabase() {
   await sql`
     ALTER TABLE candidates
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ
+  `;
+
+  /* Синхронизация city/location */
+
+  await sql`
+    UPDATE vacancies
+    SET city = location
+    WHERE city IS NULL
+      AND location IS NOT NULL
+  `;
+
+  await sql`
+    UPDATE vacancies
+    SET location = city
+    WHERE location IS NULL
+      AND city IS NOT NULL
   `;
 }
 
@@ -272,7 +317,8 @@ async function setSession(chatId, data) {
       shift = EXCLUDED.shift,
       payment = EXCLUDED.payment,
       conditions = EXCLUDED.conditions,
-      application_vacancy_id = EXCLUDED.application_vacancy_id,
+      application_vacancy_id =
+        EXCLUDED.application_vacancy_id,
       updated_at = NOW()
   `;
 }
@@ -284,26 +330,47 @@ async function clearSession(chatId) {
   `;
 }
 
-async function mainMenu(chatId, text = "Главное меню") {
+async function mainMenu(
+  chatId,
+  text = "Главное меню"
+) {
   return sendMessage(chatId, text, {
     reply_markup: mainKeyboard(chatId),
   });
 }
 
 /* =========================
-   VACANCY CARD
+   VACANCITY HELPERS
 ========================= */
+
+function vacancyLocation(vacancy) {
+  return vacancy.city || vacancy.location || "";
+}
 
 function vacancyText(vacancy) {
   return (
     `🔥 <b>${esc(vacancy.title)}</b>\n\n` +
-    `🧰 <b>Профессия:</b> ${esc(vacancy.profession)}\n` +
-    `📍 <b>Город:</b> ${esc(vacancy.city)}\n` +
-    `⏱ <b>Опыт:</b> ${esc(vacancy.experience)}\n` +
-    `💰 <b>Оплата:</b> ${esc(vacancy.payment)}\n` +
-    `🏠 <b>Условия:</b> ${esc(vacancy.conditions)}\n` +
-    `🔄 <b>График:</b> ${esc(vacancy.shift)}\n\n` +
-    `📞 <b>Контакт:</b> ${esc(vacancy.phone)}\n\n` +
+    `🧰 <b>Профессия:</b> ${esc(
+      vacancy.profession
+    )}\n` +
+    `📍 <b>Город:</b> ${esc(
+      vacancyLocation(vacancy)
+    )}\n` +
+    `⏱ <b>Опыт:</b> ${esc(
+      vacancy.experience
+    )}\n` +
+    `💰 <b>Оплата:</b> ${esc(
+      vacancy.payment
+    )}\n` +
+    `🏠 <b>Условия:</b> ${esc(
+      vacancy.conditions
+    )}\n` +
+    `🔄 <b>График:</b> ${esc(
+      vacancy.shift
+    )}\n\n` +
+    `📞 <b>Контакт:</b> ${esc(
+      vacancy.phone
+    )}\n\n` +
     `Работа | Вахта\n` +
     `Вакансии, поиск и подбор рабочих специалистов`
   );
@@ -315,15 +382,18 @@ function vacancyInlineKeyboard(vacancyId) {
       [
         {
           text: "📩 Откликнуться",
-          url: `https://t.me/${BOT_USERNAME}?start=vacancy_${vacancyId}`,
+          url:
+            `https://t.me/${BOT_USERNAME}` +
+            `?start=vacancy_${vacancyId}`,
         },
       ],
       [
         {
           text: "📢 Канал «Работа | Вахта»",
-          url: `https://t.me/${String(
-            CHANNEL_USERNAME
-          ).replace("@", "")}`,
+          url:
+            `https://t.me/${String(
+              CHANNEL_USERNAME
+            ).replace("@", "")}`,
         },
       ],
     ],
@@ -336,9 +406,17 @@ function vacancyInlineKeyboard(vacancyId) {
 
 async function handleStart(message) {
   const chatId = message.chat.id;
-  const args = String(message.text || "").split(" ")[1];
 
-  if (args && args.startsWith("vacancy_")) {
+  const args = String(
+    message.text || ""
+  ).split(" ")[1];
+
+  /* Отклик на конкретную вакансию */
+
+  if (
+    args &&
+    args.startsWith("vacancy_")
+  ) {
     const vacancyId = Number(
       args.replace("vacancy_", "")
     );
@@ -374,9 +452,9 @@ async function handleStart(message) {
 
     return sendMessage(
       chatId,
-      `📩 <b>Отклик на вакансию</b>\n\n${vacancyText(
-        vacancy
-      )}\n\nВведите ваше имя и фамилию:`,
+      `📩 <b>Отклик на вакансию</b>\n\n` +
+        `${vacancyText(vacancy)}\n\n` +
+        `👤 Введите ваше имя и фамилию:`,
       {
         parse_mode: "HTML",
       }
@@ -387,7 +465,9 @@ async function handleStart(message) {
 
   return sendMessage(
     chatId,
-    "👋 <b>Добро пожаловать в «Работа | Вахта».</b>\n\nЗдесь можно найти работу, разместить вакансию и оставить анкету специалиста.",
+    "👋 <b>Добро пожаловать в «Работа | Вахта».</b>\n\n" +
+      "Здесь можно найти работу, разместить вакансию " +
+      "и оставить анкету специалиста.",
     {
       parse_mode: "HTML",
       reply_markup: mainKeyboard(chatId),
@@ -396,12 +476,17 @@ async function handleStart(message) {
 }
 
 /* =========================
-   CANDIDATE
+   CANDIDATE FLOW
 ========================= */
 
-async function candidateFlow(message, session) {
+async function candidateFlow(
+  message,
+  session
+) {
   const chatId = message.chat.id;
-  const value = String(message.text || "").trim();
+  const value = String(
+    message.text || ""
+  ).trim();
 
   if (!value) {
     return sendMessage(
@@ -410,7 +495,10 @@ async function candidateFlow(message, session) {
     );
   }
 
-  if (session.step === "candidate_name") {
+  if (
+    session.step ===
+    "candidate_name"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "candidate_phone",
@@ -423,7 +511,10 @@ async function candidateFlow(message, session) {
     );
   }
 
-  if (session.step === "candidate_phone") {
+  if (
+    session.step ===
+    "candidate_phone"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "candidate_profession",
@@ -436,7 +527,10 @@ async function candidateFlow(message, session) {
     );
   }
 
-  if (session.step === "candidate_profession") {
+  if (
+    session.step ===
+    "candidate_profession"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "candidate_experience",
@@ -449,7 +543,10 @@ async function candidateFlow(message, session) {
     );
   }
 
-  if (session.step === "candidate_experience") {
+  if (
+    session.step ===
+    "candidate_experience"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "candidate_city",
@@ -462,7 +559,10 @@ async function candidateFlow(message, session) {
     );
   }
 
-  if (session.step === "candidate_city") {
+  if (
+    session.step ===
+    "candidate_city"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "candidate_shift",
@@ -471,11 +571,15 @@ async function candidateFlow(message, session) {
 
     return sendMessage(
       chatId,
-      "🔄 Готовы работать вахтой?\n\nНапишите Да или Нет."
+      "🔄 Готовы работать вахтой?\n\n" +
+        "Напишите Да или Нет."
     );
   }
 
-  if (session.step === "candidate_shift") {
+  if (
+    session.step ===
+    "candidate_shift"
+  ) {
     const updated = {
       ...session,
       shift: value,
@@ -510,7 +614,8 @@ async function candidateFlow(message, session) {
 
     await sendMessage(
       chatId,
-      "✅ <b>Анкета сохранена!</b>\n\nВаш профиль добавлен в базу специалистов.",
+      "✅ <b>Анкета сохранена!</b>\n\n" +
+        "Ваш профиль добавлен в базу специалистов.",
       {
         parse_mode: "HTML",
       }
@@ -537,12 +642,17 @@ async function candidateFlow(message, session) {
 }
 
 /* =========================
-   VACANCY CREATION
+   VACANCY FLOW
 ========================= */
 
-async function vacancyFlow(message, session) {
+async function vacancyFlow(
+  message,
+  session
+) {
   const chatId = message.chat.id;
-  const value = String(message.text || "").trim();
+  const value = String(
+    message.text || ""
+  ).trim();
 
   if (!value) {
     return sendMessage(
@@ -551,7 +661,10 @@ async function vacancyFlow(message, session) {
     );
   }
 
-  if (session.step === "vacancy_title") {
+  if (
+    session.step ===
+    "vacancy_title"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "vacancy_profession",
@@ -564,7 +677,10 @@ async function vacancyFlow(message, session) {
     );
   }
 
-  if (session.step === "vacancy_profession") {
+  if (
+    session.step ===
+    "vacancy_profession"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "vacancy_city",
@@ -577,7 +693,10 @@ async function vacancyFlow(message, session) {
     );
   }
 
-  if (session.step === "vacancy_city") {
+  if (
+    session.step ===
+    "vacancy_city"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "vacancy_experience",
@@ -590,7 +709,10 @@ async function vacancyFlow(message, session) {
     );
   }
 
-  if (session.step === "vacancy_experience") {
+  if (
+    session.step ===
+    "vacancy_experience"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "vacancy_payment",
@@ -603,7 +725,10 @@ async function vacancyFlow(message, session) {
     );
   }
 
-  if (session.step === "vacancy_payment") {
+  if (
+    session.step ===
+    "vacancy_payment"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "vacancy_conditions",
@@ -616,7 +741,10 @@ async function vacancyFlow(message, session) {
     );
   }
 
-  if (session.step === "vacancy_conditions") {
+  if (
+    session.step ===
+    "vacancy_conditions"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "vacancy_shift",
@@ -629,7 +757,10 @@ async function vacancyFlow(message, session) {
     );
   }
 
-  if (session.step === "vacancy_shift") {
+  if (
+    session.step ===
+    "vacancy_shift"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "vacancy_phone",
@@ -642,7 +773,10 @@ async function vacancyFlow(message, session) {
     );
   }
 
-  if (session.step === "vacancy_phone") {
+  if (
+    session.step ===
+    "vacancy_phone"
+  ) {
     const updated = {
       ...session,
       phone: value,
@@ -654,6 +788,7 @@ async function vacancyFlow(message, session) {
         title,
         profession,
         city,
+        location,
         experience,
         payment,
         conditions,
@@ -666,6 +801,7 @@ async function vacancyFlow(message, session) {
         ${chatId},
         ${updated.name},
         ${updated.profession},
+        ${updated.city},
         ${updated.city},
         ${updated.experience},
         ${updated.payment},
@@ -684,7 +820,8 @@ async function vacancyFlow(message, session) {
 
     await sendMessage(
       chatId,
-      `✅ <b>Вакансия №${vacancy.id} сохранена.</b>\n\nОна отправлена администратору на проверку.`,
+      `✅ <b>Вакансия №${vacancy.id} сохранена.</b>\n\n` +
+        "Она отправлена администратору на проверку.",
       {
         parse_mode: "HTML",
         reply_markup: employerKeyboard(),
@@ -694,9 +831,8 @@ async function vacancyFlow(message, session) {
     if (ADMIN_ID) {
       await sendMessage(
         ADMIN_ID,
-        `📋 <b>Новая вакансия №${vacancy.id}</b>\n\n${vacancyText(
-          vacancy
-        )}`,
+        `📋 <b>Новая вакансия №${vacancy.id}</b>\n\n` +
+          vacancyText(vacancy),
         {
           parse_mode: "HTML",
           reply_markup: {
@@ -704,13 +840,15 @@ async function vacancyFlow(message, session) {
               [
                 {
                   text: "📢 Опубликовать",
-                  callback_data: `publish:${vacancy.id}`,
+                  callback_data:
+                    `publish:${vacancy.id}`,
                 },
               ],
               [
                 {
                   text: "❌ Закрыть",
-                  callback_data: `close:${vacancy.id}`,
+                  callback_data:
+                    `close:${vacancy.id}`,
                 },
               ],
             ],
@@ -718,18 +856,35 @@ async function vacancyFlow(message, session) {
         }
       );
     }
+
+    return;
   }
 }
 
 /* =========================
-   APPLICATION
+   APPLICATION FLOW
 ========================= */
 
-async function applicationFlow(message, session) {
+async function applicationFlow(
+  message,
+  session
+) {
   const chatId = message.chat.id;
-  const value = String(message.text || "").trim();
+  const value = String(
+    message.text || ""
+  ).trim();
 
-  if (session.step === "application_name") {
+  if (!value) {
+    return sendMessage(
+      chatId,
+      "Пожалуйста, отправьте информацию текстом."
+    );
+  }
+
+  if (
+    session.step ===
+    "application_name"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "application_phone",
@@ -742,7 +897,10 @@ async function applicationFlow(message, session) {
     );
   }
 
-  if (session.step === "application_phone") {
+  if (
+    session.step ===
+    "application_phone"
+  ) {
     await setSession(chatId, {
       ...session,
       step: "application_experience",
@@ -755,7 +913,10 @@ async function applicationFlow(message, session) {
     );
   }
 
-  if (session.step === "application_experience") {
+  if (
+    session.step ===
+    "application_experience"
+  ) {
     const updated = {
       ...session,
       experience: value,
@@ -826,7 +987,9 @@ async function applicationFlow(message, session) {
 
     await sendMessage(
       chatId,
-      `✅ <b>Отклик отправлен!</b>\n\nЗаявка №${applicationId}\nРаботодатель получил ваши данные.`,
+      `✅ <b>Отклик отправлен!</b>\n\n` +
+        `Заявка №${applicationId}\n` +
+        "Работодатель получил ваши данные.",
       {
         parse_mode: "HTML",
       }
@@ -847,11 +1010,13 @@ async function applicationFlow(message, session) {
               [
                 {
                   text: "🤝 Пригласить",
-                  callback_data: `invite:${applicationId}`,
+                  callback_data:
+                    `invite:${applicationId}`,
                 },
                 {
                   text: "❌ Отказать",
-                  callback_data: `reject:${applicationId}`,
+                  callback_data:
+                    `reject:${applicationId}`,
                 },
               ],
             ],
@@ -882,7 +1047,9 @@ async function applicationFlow(message, session) {
    PUBLISH VACANCY
 ========================= */
 
-async function publishVacancy(vacancyId) {
+async function publishVacancy(
+  vacancyId
+) {
   const rows = await sql`
     SELECT *
     FROM vacancies
@@ -896,7 +1063,8 @@ async function publishVacancy(vacancyId) {
   if (!vacancy) {
     return {
       ok: false,
-      message: "Вакансия не найдена или закрыта.",
+      message:
+        "Вакансия не найдена или закрыта.",
     };
   }
 
@@ -925,7 +1093,8 @@ async function publishVacancy(vacancyId) {
     SET
       published = TRUE,
       published_at = NOW(),
-      channel_message_id = ${result.result?.message_id || null}
+      channel_message_id =
+        ${result.result?.message_id || null}
     WHERE id = ${vacancyId}
   `;
 
@@ -936,10 +1105,12 @@ async function publishVacancy(vacancyId) {
 }
 
 /* =========================
-   ADMIN: SPECIALISTS
+   ADMIN: CANDIDATES
 ========================= */
 
-async function showAllCandidates(chatId) {
+async function showAllCandidates(
+  chatId
+) {
   const rows = await sql`
     SELECT *
     FROM candidates
@@ -967,16 +1138,22 @@ async function showAllCandidates(chatId) {
       `🔄 Вахта: ${esc(c.shift)}\n\n`;
   }
 
-  return sendMessage(chatId, text, {
-    parse_mode: "HTML",
-  });
+  return sendMessage(
+    chatId,
+    text,
+    {
+      parse_mode: "HTML",
+    }
+  );
 }
 
 /* =========================
    ADMIN: VACANCIES
 ========================= */
 
-async function showAllVacancies(chatId) {
+async function showAllVacancies(
+  chatId
+) {
   const rows = await sql`
     SELECT *
     FROM vacancies
@@ -1000,7 +1177,8 @@ async function showAllVacancies(chatId) {
 
     await sendMessage(
       chatId,
-      `${vacancyText(vacancy)}\n\n<b>Статус:</b> ${status}`,
+      `${vacancyText(vacancy)}\n\n` +
+        `<b>Статус:</b> ${status}`,
       {
         parse_mode: "HTML",
         reply_markup: {
@@ -1011,7 +1189,8 @@ async function showAllVacancies(chatId) {
                   [
                     {
                       text: "📢 Опубликовать",
-                      callback_data: `publish:${vacancy.id}`,
+                      callback_data:
+                        `publish:${vacancy.id}`,
                     },
                   ],
                 ]
@@ -1021,7 +1200,8 @@ async function showAllVacancies(chatId) {
                   [
                     {
                       text: "🔒 Закрыть",
-                      callback_data: `close:${vacancy.id}`,
+                      callback_data:
+                        `close:${vacancy.id}`,
                     },
                   ],
                 ]
@@ -1037,7 +1217,9 @@ async function showAllVacancies(chatId) {
    ADMIN: APPLICATIONS
 ========================= */
 
-async function showAllApplications(chatId) {
+async function showAllApplications(
+  chatId
+) {
   const rows = await sql`
     SELECT
       a.*,
@@ -1060,7 +1242,9 @@ async function showAllApplications(chatId) {
     await sendMessage(
       chatId,
       `📩 <b>Отклик №${a.id}</b>\n\n` +
-        `📋 Вакансия: ${esc(a.vacancy_title)}\n` +
+        `📋 Вакансия: ${esc(
+          a.vacancy_title
+        )}\n` +
         `👤 ${esc(a.name)}\n` +
         `📞 ${esc(a.phone)}\n` +
         `⏱ ${esc(a.experience)}\n` +
@@ -1072,11 +1256,13 @@ async function showAllApplications(chatId) {
             [
               {
                 text: "🤝 Пригласить",
-                callback_data: `invite:${a.id}`,
+                callback_data:
+                  `invite:${a.id}`,
               },
               {
                 text: "❌ Отказать",
-                callback_data: `reject:${a.id}`,
+                callback_data:
+                  `reject:${a.id}`,
               },
             ],
           ],
@@ -1087,10 +1273,13 @@ async function showAllApplications(chatId) {
 }
 
 /* =========================
-   ADMIN: SEARCH
+   SEARCH
 ========================= */
 
-async function searchCandidates(chatId, query) {
+async function searchCandidates(
+  chatId,
+  query
+) {
   const q = `%${query}%`;
 
   const rows = await sql`
@@ -1126,16 +1315,22 @@ async function searchCandidates(chatId, query) {
       `📞 ${esc(c.phone)}\n\n`;
   }
 
-  return sendMessage(chatId, text, {
-    parse_mode: "HTML",
-  });
+  return sendMessage(
+    chatId,
+    text,
+    {
+      parse_mode: "HTML",
+    }
+  );
 }
 
 /* =========================
-   EMPLOYER: VACANCIES
+   EMPLOYER VACANCIES
 ========================= */
 
-async function showEmployerVacancies(chatId) {
+async function showEmployerVacancies(
+  chatId
+) {
   const rows = await sql`
     SELECT *
     FROM vacancies
@@ -1160,7 +1355,8 @@ async function showEmployerVacancies(chatId) {
 
     await sendMessage(
       chatId,
-      `${vacancyText(vacancy)}\n\n<b>${status}</b>`,
+      `${vacancyText(vacancy)}\n\n` +
+        `<b>${status}</b>`,
       {
         parse_mode: "HTML",
         reply_markup: {
@@ -1170,13 +1366,15 @@ async function showEmployerVacancies(chatId) {
                   [
                     {
                       text: "📩 Отклики",
-                      callback_data: `vacapps:${vacancy.id}`,
+                      callback_data:
+                        `vacapps:${vacancy.id}`,
                     },
                   ],
                   [
                     {
                       text: "🔒 Закрыть",
-                      callback_data: `close:${vacancy.id}`,
+                      callback_data:
+                        `close:${vacancy.id}`,
                     },
                   ],
                 ]
@@ -1192,7 +1390,9 @@ async function showEmployerVacancies(chatId) {
    EMPLOYER APPLICATIONS
 ========================= */
 
-async function showEmployerApplications(chatId) {
+async function showEmployerApplications(
+  chatId
+) {
   const rows = await sql`
     SELECT
       a.*,
@@ -1228,11 +1428,13 @@ async function showEmployerApplications(chatId) {
             [
               {
                 text: "🤝 Пригласить",
-                callback_data: `invite:${a.id}`,
+                callback_data:
+                  `invite:${a.id}`,
               },
               {
                 text: "❌ Отказать",
-                callback_data: `reject:${a.id}`,
+                callback_data:
+                  `reject:${a.id}`,
               },
             ],
           ],
@@ -1259,7 +1461,11 @@ async function showVacancyApplications(
 
   const vacancy = vacancyRows[0];
 
-  if (!vacancy || String(vacancy.chat_id) !== String(chatId)) {
+  if (
+    !vacancy ||
+    String(vacancy.chat_id) !==
+      String(chatId)
+  ) {
     return sendMessage(
       chatId,
       "❌ Доступ запрещён."
@@ -1295,11 +1501,13 @@ async function showVacancyApplications(
             [
               {
                 text: "🤝 Пригласить",
-                callback_data: `invite:${a.id}`,
+                callback_data:
+                  `invite:${a.id}`,
               },
               {
                 text: "❌ Отказать",
-                callback_data: `reject:${a.id}`,
+                callback_data:
+                  `reject:${a.id}`,
               },
             ],
           ],
@@ -1310,7 +1518,7 @@ async function showVacancyApplications(
 }
 
 /* =========================
-   STATUS
+   APPLICATION STATUS
 ========================= */
 
 async function changeApplicationStatus(
@@ -1347,11 +1555,14 @@ async function changeApplicationStatus(
       application.candidate_chat_id,
       `🤝 <b>Вас приглашают на работу!</b>\n\n` +
         `Вакансия: ${esc(
-          vacancy?.title || "Вакансия"
+          vacancy?.title ||
+            "Вакансия"
         )}\n` +
-        `Работодатель получил ваши контакты и готов продолжить общение.\n\n` +
+        "Работодатель получил ваши контакты " +
+        "и готов продолжить общение.\n\n" +
         `📞 Контакт: ${esc(
-          vacancy?.phone || "уточняется"
+          vacancy?.phone ||
+            "уточняется"
         )}`,
       {
         parse_mode: "HTML",
@@ -1364,10 +1575,11 @@ async function changeApplicationStatus(
       application.candidate_chat_id,
       `ℹ️ <b>Изменение по отклику</b>\n\n` +
         `Вакансия: ${esc(
-          vacancy?.title || "Вакансия"
+          vacancy?.title ||
+            "Вакансия"
         )}\n\n` +
-        `Работодатель пока не выбрал вашу кандидатуру.\n` +
-        `Не останавливайтесь — новые вакансии появляются регулярно.`,
+        "Работодатель пока не выбрал вашу кандидатуру.\n" +
+        "Не останавливайтесь — новые вакансии появляются регулярно.",
       {
         parse_mode: "HTML",
       }
@@ -1387,9 +1599,13 @@ async function changeApplicationStatus(
    CALLBACKS
 ========================= */
 
-async function handleCallbackQuery(callback) {
+async function handleCallbackQuery(
+  callback
+) {
   const chatId = callback.from.id;
-  const data = String(callback.data || "");
+  const data = String(
+    callback.data || ""
+  );
 
   await answerCallbackQuery(
     callback.id,
@@ -1406,7 +1622,9 @@ async function handleCallbackQuery(callback) {
     );
 
     const result =
-      await publishVacancy(vacancyId);
+      await publishVacancy(
+        vacancyId
+      );
 
     return sendMessage(
       chatId,
@@ -1439,7 +1657,8 @@ async function handleCallbackQuery(callback) {
 
     if (
       !isAdmin(chatId) &&
-      String(vacancy.chat_id) !== String(chatId)
+      String(vacancy.chat_id) !==
+        String(chatId)
     ) {
       return sendMessage(
         chatId,
@@ -1465,7 +1684,9 @@ async function handleCallbackQuery(callback) {
     );
 
     const rows = await sql`
-      SELECT a.*, v.chat_id AS employer_chat_id
+      SELECT
+        a.*,
+        v.chat_id AS employer_chat_id
       FROM applications a
       JOIN vacancies v
         ON v.id = a.vacancy_id
@@ -1484,8 +1705,9 @@ async function handleCallbackQuery(callback) {
 
     if (
       !isAdmin(chatId) &&
-      String(application.employer_chat_id) !==
-        String(chatId)
+      String(
+        application.employer_chat_id
+      ) !== String(chatId)
     ) {
       return sendMessage(
         chatId,
@@ -1511,7 +1733,9 @@ async function handleCallbackQuery(callback) {
     );
 
     const rows = await sql`
-      SELECT a.*, v.chat_id AS employer_chat_id
+      SELECT
+        a.*,
+        v.chat_id AS employer_chat_id
       FROM applications a
       JOIN vacancies v
         ON v.id = a.vacancy_id
@@ -1530,8 +1754,9 @@ async function handleCallbackQuery(callback) {
 
     if (
       !isAdmin(chatId) &&
-      String(application.employer_chat_id) !==
-        String(chatId)
+      String(
+        application.employer_chat_id
+      ) !== String(chatId)
     ) {
       return sendMessage(
         chatId,
@@ -1564,7 +1789,7 @@ async function handleCallbackQuery(callback) {
 }
 
 /* =========================
-   ADMIN MENU
+   ADMIN
 ========================= */
 
 async function adminAction(
@@ -1577,19 +1802,33 @@ async function adminAction(
     return mainMenu(chatId);
   }
 
-  if (value === "👷 Все специалисты") {
-    return showAllCandidates(chatId);
+  if (
+    value === "👷 Все специалисты"
+  ) {
+    return showAllCandidates(
+      chatId
+    );
   }
 
-  if (value === "📋 Все вакансии") {
-    return showAllVacancies(chatId);
+  if (
+    value === "📋 Все вакансии"
+  ) {
+    return showAllVacancies(
+      chatId
+    );
   }
 
-  if (value === "📩 Все отклики") {
-    return showAllApplications(chatId);
+  if (
+    value === "📩 Все отклики"
+  ) {
+    return showAllApplications(
+      chatId
+    );
   }
 
-  if (value === "📢 Опубликовать вакансию") {
+  if (
+    value === "📢 Опубликовать вакансию"
+  ) {
     const rows = await sql`
       SELECT *
       FROM vacancies
@@ -1609,9 +1848,8 @@ async function adminAction(
     for (const vacancy of rows) {
       await sendMessage(
         chatId,
-        `📢 <b>Вакансия №${vacancy.id}</b>\n\n${vacancyText(
-          vacancy
-        )}`,
+        `📢 <b>Вакансия №${vacancy.id}</b>\n\n` +
+          vacancyText(vacancy),
         {
           parse_mode: "HTML",
           reply_markup: {
@@ -1619,13 +1857,15 @@ async function adminAction(
               [
                 {
                   text: "📢 Опубликовать",
-                  callback_data: `publish:${vacancy.id}`,
+                  callback_data:
+                    `publish:${vacancy.id}`,
                 },
               ],
               [
                 {
                   text: "🔒 Закрыть",
-                  callback_data: `close:${vacancy.id}`,
+                  callback_data:
+                    `close:${vacancy.id}`,
                 },
               ],
             ],
@@ -1637,23 +1877,32 @@ async function adminAction(
     return;
   }
 
-  if (value === "🔎 Поиск специалиста") {
+  if (
+    value === "🔎 Поиск специалиста"
+  ) {
     await setSession(chatId, {
       step: "admin_search",
     });
 
     return sendMessage(
       chatId,
-      "🔎 Введите профессию, город, имя или опыт для поиска.\n\nНапример:\nМонтажник\nМосква\nСварщик"
+      "🔎 Введите профессию, город, имя или опыт для поиска.\n\n" +
+        "Например:\nМонтажник\nМосква\nСварщик"
     );
   }
 
   if (value === "📊 Статистика") {
     const candidates =
-      await sql`SELECT COUNT(*)::int AS n FROM candidates`;
+      await sql`
+        SELECT COUNT(*)::int AS n
+        FROM candidates
+      `;
 
     const vacancies =
-      await sql`SELECT COUNT(*)::int AS n FROM vacancies`;
+      await sql`
+        SELECT COUNT(*)::int AS n
+        FROM vacancies
+      `;
 
     const published =
       await sql`
@@ -1671,7 +1920,10 @@ async function adminAction(
       `;
 
     const applications =
-      await sql`SELECT COUNT(*)::int AS n FROM applications`;
+      await sql`
+        SELECT COUNT(*)::int AS n
+        FROM applications
+      `;
 
     const newApplications =
       await sql`
@@ -1708,9 +1960,13 @@ async function adminAction(
    MESSAGE HANDLER
 ========================= */
 
-async function handleMessage(message) {
+async function handleMessage(
+  message
+) {
   const chatId = message.chat.id;
-  const value = String(message.text || "").trim();
+  const value = String(
+    message.text || ""
+  ).trim();
 
   if (
     value === "/start" ||
@@ -1726,7 +1982,9 @@ async function handleMessage(message) {
     );
   }
 
-  if (value === "🏠 Главное меню") {
+  if (
+    value === "🏠 Главное меню"
+  ) {
     await clearSession(chatId);
     return mainMenu(chatId);
   }
@@ -1744,10 +2002,15 @@ async function handleMessage(message) {
       "📢 Опубликовать вакансию",
     ].includes(value)
   ) {
-    return adminAction(message, value);
+    return adminAction(
+      message,
+      value
+    );
   }
 
-  if (value === "🔐 Админ-панель") {
+  if (
+    value === "🔐 Админ-панель"
+  ) {
     if (!isAdmin(chatId)) {
       return mainMenu(chatId);
     }
@@ -1764,7 +2027,9 @@ async function handleMessage(message) {
 
   /* CANDIDATE */
 
-  if (value === "👷 Я ищу работу") {
+  if (
+    value === "👷 Я ищу работу"
+  ) {
     await clearSession(chatId);
 
     await setSession(chatId, {
@@ -1773,7 +2038,8 @@ async function handleMessage(message) {
 
     return sendMessage(
       chatId,
-      "👷 <b>АНКЕТА СПЕЦИАЛИСТА</b>\n\nВведите имя и фамилию:",
+      "👷 <b>АНКЕТА СПЕЦИАЛИСТА</b>\n\n" +
+        "Введите имя и фамилию:",
       {
         parse_mode: "HTML",
       }
@@ -1782,12 +2048,15 @@ async function handleMessage(message) {
 
   /* EMPLOYER */
 
-  if (value === "🏢 Работодатель") {
+  if (
+    value === "🏢 Работодатель"
+  ) {
     await clearSession(chatId);
 
     return sendMessage(
       chatId,
-      "🏢 <b>КАБИНЕТ РАБОТОДАТЕЛЯ</b>\n\nСоздавайте вакансии и получайте отклики специалистов.",
+      "🏢 <b>КАБИНЕТ РАБОТОДАТЕЛЯ</b>\n\n" +
+        "Создавайте вакансии и получайте отклики специалистов.",
       {
         parse_mode: "HTML",
         reply_markup: employerKeyboard(),
@@ -1796,8 +2065,10 @@ async function handleMessage(message) {
   }
 
   if (
-    value === "📋 Разместить вакансию" ||
-    value === "➕ Создать вакансию"
+    value ===
+      "📋 Разместить вакансию" ||
+    value ===
+      "➕ Создать вакансию"
   ) {
     await clearSession(chatId);
 
@@ -1807,25 +2078,35 @@ async function handleMessage(message) {
 
     return sendMessage(
       chatId,
-      "📋 <b>СОЗДАНИЕ ВАКАНСИИ</b>\n\nВведите название вакансии:",
+      "📋 <b>СОЗДАНИЕ ВАКАНСИИ</b>\n\n" +
+        "Введите название вакансии:",
       {
         parse_mode: "HTML",
       }
     );
   }
 
-  if (value === "📋 Мои вакансии") {
-    return showEmployerVacancies(chatId);
+  if (
+    value === "📋 Мои вакансии"
+  ) {
+    return showEmployerVacancies(
+      chatId
+    );
   }
 
   if (value === "📩 Отклики") {
-    return showEmployerApplications(chatId);
+    return showEmployerApplications(
+      chatId
+    );
   }
 
-  if (value === "📞 Администратор") {
+  if (
+    value === "📞 Администратор"
+  ) {
     return sendMessage(
       chatId,
-      "📞 <b>Администратор</b>\n\nПо вопросам сотрудничества обратитесь к администратору канала.",
+      "📞 <b>Администратор</b>\n\n" +
+        "По вопросам сотрудничества обратитесь к администратору канала.",
       {
         parse_mode: "HTML",
       }
@@ -1834,10 +2115,14 @@ async function handleMessage(message) {
 
   /* SESSION */
 
-  const session = await getSession(chatId);
+  const session =
+    await getSession(chatId);
 
   if (session) {
-    if (session.step === "admin_search") {
+    if (
+      session.step ===
+      "admin_search"
+    ) {
       await clearSession(chatId);
 
       if (!isAdmin(chatId)) {
@@ -1851,7 +2136,9 @@ async function handleMessage(message) {
     }
 
     if (
-      session.step?.startsWith("candidate_")
+      session.step?.startsWith(
+        "candidate_"
+      )
     ) {
       return candidateFlow(
         message,
@@ -1860,7 +2147,9 @@ async function handleMessage(message) {
     }
 
     if (
-      session.step?.startsWith("vacancy_")
+      session.step?.startsWith(
+        "vacancy_"
+      )
     ) {
       return vacancyFlow(
         message,
@@ -1869,7 +2158,9 @@ async function handleMessage(message) {
     }
 
     if (
-      session.step?.startsWith("application_")
+      session.step?.startsWith(
+        "application_"
+      )
     ) {
       return applicationFlow(
         message,
@@ -1885,7 +2176,7 @@ async function handleMessage(message) {
 }
 
 /* =========================
-   HANDLER
+   MAIN VERCEL HANDLER
 ========================= */
 
 export default async function handler(
@@ -1893,11 +2184,14 @@ export default async function handler(
   res
 ) {
   try {
+    /* HEALTH */
+
     if (req.method === "GET") {
       if (!BOT_TOKEN) {
         return res.status(500).json({
           ok: false,
-          error: "BOT_TOKEN is not configured",
+          error:
+            "BOT_TOKEN is not configured",
         });
       }
 
@@ -1906,18 +2200,26 @@ export default async function handler(
           ok: true,
           service: "Работа | Вахта",
           status: "online",
-          database: Boolean(POSTGRES_URL),
-          bot_username: BOT_USERNAME,
-          channel: CHANNEL_USERNAME,
+          database: Boolean(
+            POSTGRES_URL
+          ),
+          bot_username:
+            BOT_USERNAME,
+          channel:
+            CHANNEL_USERNAME,
         });
       }
 
+      /* WEBHOOK SETUP */
+
       if (req.query?.setup === "1") {
-        const host = req.headers.host;
+        const host =
+          req.headers.host;
 
         const protocol =
-          req.headers["x-forwarded-proto"] ||
-          "https";
+          req.headers[
+            "x-forwarded-proto"
+          ] || "https";
 
         const webhook =
           `${protocol}://${host}/api/bot`;
@@ -1947,6 +2249,8 @@ export default async function handler(
         status: "online",
       });
     }
+
+    /* ONLY POST */
 
     if (req.method !== "POST") {
       return res.status(405).json({
