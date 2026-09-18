@@ -13,26 +13,35 @@ export default async function handler(req, res) {
       });
     }
 
-    const columns = await sql`
+    const vacancies = await sql`
       SELECT
-        column_name,
-        data_type
-      FROM information_schema.columns
-      WHERE table_name = 'vacancies'
-      ORDER BY ordinal_position
+        id,
+        title,
+        profession,
+        city AS location,
+        experience,
+        payment,
+        conditions,
+        shift,
+        published_at
+      FROM vacancies
+      WHERE published = TRUE
+        AND closed = FALSE
+      ORDER BY
+        published_at DESC NULLS LAST,
+        id DESC
     `;
 
     return res.status(200).json({
       ok: true,
-      table: "vacancies",
-      columns,
+      vacancies,
     });
   } catch (error) {
-    console.error("VACANCIES STRUCTURE ERROR:", error);
+    console.error("VACANCIES API ERROR:", error);
 
     return res.status(500).json({
       ok: false,
-      error: "Ошибка проверки таблицы vacancies",
+      error: "Ошибка загрузки вакансий",
       details: error?.message || "Unknown error",
     });
   }
