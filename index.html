@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta name="description" content="РАБОТА | ВАХТА — вакансии и подбор специалистов">
   <title>РАБОТА | ВАХТА</title>
 
   <style>
@@ -16,12 +16,12 @@
     body {
       font-family: Arial, sans-serif;
       background: #080808;
-      color: #fff;
+      color: #ffffff;
       min-height: 100vh;
     }
 
     header {
-      padding: 28px 20px 20px;
+      padding: 28px 20px 22px;
       text-align: center;
       border-bottom: 1px solid #292929;
     }
@@ -38,53 +38,16 @@
 
     .subtitle {
       margin-top: 10px;
-      color: #aaa;
+      color: #999999;
       font-size: 14px;
       line-height: 1.5;
     }
 
     main {
-      max-width: 700px;
-      margin: auto;
-      padding: 25px 16px 60px;
-    }
-
-    .menu {
-      display: grid;
-      gap: 14px;
-      margin-bottom: 35px;
-    }
-
-    button,
-    .menu-button {
       width: 100%;
-      border: 1px solid #3a3a3a;
-      background: linear-gradient(145deg, #171717, #0d0d0d);
-      color: white;
-      padding: 19px;
-      border-radius: 14px;
-      cursor: pointer;
-      text-align: left;
-      transition: .2s;
-      text-decoration: none;
-      display: block;
-    }
-
-    button:hover,
-    .menu-button:hover {
-      border-color: #d4af37;
-      transform: translateY(-1px);
-    }
-
-    .menu-title {
-      font-size: 17px;
-      font-weight: 800;
-    }
-
-    .menu-description {
-      color: #999;
-      margin-top: 5px;
-      font-size: 13px;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 25px 16px 60px;
     }
 
     section {
@@ -95,44 +58,122 @@
       display: block;
     }
 
+    .menu {
+      display: grid;
+      gap: 14px;
+    }
+
+    button,
+    .menu-button {
+      width: 100%;
+      border: 1px solid #3a3a3a;
+      background: linear-gradient(145deg, #181818, #0e0e0e);
+      color: #ffffff;
+      padding: 19px;
+      border-radius: 14px;
+      cursor: pointer;
+      text-align: left;
+      text-decoration: none;
+      display: block;
+      font-family: inherit;
+      transition: 0.2s;
+    }
+
+    button:hover,
+    .menu-button:hover {
+      border-color: #d4af37;
+    }
+
+    .menu-title {
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .menu-description {
+      margin-top: 5px;
+      color: #999999;
+      font-size: 13px;
+    }
+
     h2 {
       margin-bottom: 18px;
       font-size: 24px;
     }
 
     .back {
-      color: #d4af37;
-      margin-bottom: 20px;
-      cursor: pointer;
       display: inline-block;
+      margin-bottom: 20px;
+      color: #d4af37;
+      cursor: pointer;
+      font-size: 15px;
     }
 
     .vacancy {
+      margin-bottom: 15px;
+      padding: 19px;
       border: 1px solid #292929;
       border-radius: 15px;
-      padding: 18px;
-      margin-bottom: 14px;
-      background: #111;
+      background: #111111;
     }
 
-    .vacancy h3 {
+    .vacancy-title {
       margin-bottom: 8px;
-      font-size: 18px;
+      font-size: 19px;
+      font-weight: 800;
     }
 
-    .vacancy p {
-      color: #aaa;
+    .vacancy-profession {
+      margin-bottom: 14px;
+      color: #aaaaaa;
       font-size: 14px;
-      line-height: 1.5;
-      margin-bottom: 12px;
+    }
+
+    .vacancy-info {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 17px;
+    }
+
+    .vacancy-info div {
+      color: #cccccc;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .vacancy-info strong {
+      color: #d4af37;
     }
 
     .apply {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
       background: #d4af37;
       color: #080808;
       text-align: center;
-      font-weight: 800;
-      border: none;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .loading,
+    .empty,
+    .error-box {
+      padding: 22px;
+      border: 1px solid #292929;
+      border-radius: 15px;
+      background: #111111;
+      color: #aaaaaa;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .retry {
+      margin-top: 14px;
+      background: #d4af37;
+      color: #080808;
+      text-align: center;
+      font-weight: 900;
     }
 
     form {
@@ -145,10 +186,11 @@
     select {
       width: 100%;
       padding: 15px;
+      border: 1px solid #333333;
       border-radius: 10px;
-      border: 1px solid #333;
-      background: #111;
-      color: #fff;
+      background: #111111;
+      color: #ffffff;
+      font-family: inherit;
       font-size: 15px;
       outline: none;
     }
@@ -165,20 +207,22 @@
     }
 
     .submit {
+      padding: 17px;
+      border: none;
+      border-radius: 10px;
       background: #d4af37;
       color: #050505;
       text-align: center;
       font-weight: 900;
-      border: none;
-      padding: 17px;
     }
 
     .message {
+      display: none;
       margin-top: 15px;
       padding: 14px;
       border-radius: 10px;
-      display: none;
       text-align: center;
+      line-height: 1.4;
     }
 
     .success {
@@ -192,16 +236,21 @@
     }
 
     .telegram {
-      text-align: center;
-      background: #111;
+      padding: 24px;
       border: 1px solid #292929;
-      padding: 22px;
       border-radius: 15px;
+      background: #111111;
+      text-align: center;
+    }
+
+    .telegram p {
+      color: #aaaaaa;
+      line-height: 1.5;
     }
 
     .telegram a {
       display: inline-block;
-      margin-top: 15px;
+      margin-top: 18px;
       padding: 14px 24px;
       border-radius: 10px;
       background: #d4af37;
@@ -233,21 +282,21 @@
 
     <div class="menu">
 
-      <button onclick="showSection('vacancies')">
+      <button type="button" onclick="showSection('vacancies')">
         <div class="menu-title">🔎 НАЙТИ РАБОТУ</div>
         <div class="menu-description">
           Актуальные вакансии
         </div>
       </button>
 
-      <button onclick="showSection('specialist')">
+      <button type="button" onclick="showSection('specialist')">
         <div class="menu-title">👷 Я СПЕЦИАЛИСТ</div>
         <div class="menu-description">
           Заполнить анкету
         </div>
       </button>
 
-      <button onclick="showSection('employer')">
+      <button type="button" onclick="showSection('employer')">
         <div class="menu-title">🏢 Я РАБОТОДАТЕЛЬ</div>
         <div class="menu-description">
           Найти специалистов
@@ -258,6 +307,7 @@
         class="menu-button"
         href="https://t.me/vakhtovyk"
         target="_blank"
+        rel="noopener noreferrer"
       >
         <div class="menu-title">💬 TELEGRAM</div>
         <div class="menu-description">
@@ -280,79 +330,10 @@
 
     <h2>🔎 Актуальные вакансии</h2>
 
-    <div class="vacancy">
-      <h3>Монтажник строительных лесов</h3>
-      <p>
-        Работа на строительных объектах.
-        Вахтовый формат. Условия обсуждаются с работодателем.
-      </p>
-
-      <button
-        class="apply"
-        onclick="openBot('Монтажник строительных лесов')"
-      >
-        ОТКЛИКНУТЬСЯ
-      </button>
-    </div>
-
-    <div class="vacancy">
-      <h3>Монтажник ЖБК</h3>
-      <p>
-        Монтаж железобетонных конструкций.
-        Работа на объектах. Вахтовый формат.
-      </p>
-
-      <button
-        class="apply"
-        onclick="openBot('Монтажник ЖБК')"
-      >
-        ОТКЛИКНУТЬСЯ
-      </button>
-    </div>
-
-    <div class="vacancy">
-      <h3>Сварщик</h3>
-      <p>
-        Сварочные работы на строительных и промышленных объектах.
-        Вахтовый формат.
-      </p>
-
-      <button
-        class="apply"
-        onclick="openBot('Сварщик')"
-      >
-        ОТКЛИКНУТЬСЯ
-      </button>
-    </div>
-
-    <div class="vacancy">
-      <h3>Изолировщик</h3>
-      <p>
-        Теплоизоляционные работы на промышленных объектах.
-        Вахтовый формат.
-      </p>
-
-      <button
-        class="apply"
-        onclick="openBot('Изолировщик')"
-      >
-        ОТКЛИКНУТЬСЯ
-      </button>
-    </div>
-
-    <div class="vacancy">
-      <h3>Маляр</h3>
-      <p>
-        Малярные и отделочные работы.
-        Вахтовый формат.
-      </p>
-
-      <button
-        class="apply"
-        onclick="openBot('Маляр')"
-      >
-        ОТКЛИКНУТЬСЯ
-      </button>
+    <div id="vacanciesList">
+      <div class="loading">
+        Загружаем вакансии...
+      </div>
     </div>
 
   </section>
@@ -374,6 +355,7 @@
         id="specName"
         type="text"
         placeholder="Ваше имя"
+        autocomplete="name"
         required
       >
 
@@ -381,6 +363,7 @@
         id="specPhone"
         type="tel"
         placeholder="Телефон"
+        autocomplete="tel"
         required
       >
 
@@ -511,6 +494,7 @@
       <a
         href="https://t.me/vakhtovyk"
         target="_blank"
+        rel="noopener noreferrer"
       >
         ПЕРЕЙТИ В TELEGRAM
       </a>
@@ -526,44 +510,327 @@
 
   function showSection(id) {
 
-    document.querySelectorAll("section").forEach(section => {
+    document.querySelectorAll("section").forEach(function(section) {
       section.classList.remove("active");
     });
 
-    document.getElementById(id).classList.add("active");
+    const section = document.getElementById(id);
+
+    if (!section) {
+      return;
+    }
+
+    section.classList.add("active");
 
     window.scrollTo({
       top: 0,
       behavior: "smooth"
     });
+
+    if (id === "vacancies") {
+      loadVacancies();
+    }
   }
 
 
-  async function sendApplication(data, messageElement) {
+  async function loadVacancies() {
 
-    messageElement.style.display = "block";
-    messageElement.className = "message";
-    messageElement.textContent = "Отправляем заявку...";
+    const container =
+      document.getElementById("vacanciesList");
+
+    if (!container) {
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="loading">
+        Загружаем вакансии...
+      </div>
+    `;
 
     try {
 
-      const response = await fetch("/api/applications", {
-
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify(data)
-
-      });
+      const response = await fetch(
+        "/api/vacancies",
+        {
+          method: "GET",
+          cache: "no-store",
+          headers: {
+            "Accept": "application/json"
+          }
+        }
+      );
 
       const result = await response.json();
 
-      if (!response.ok || !result.ok) {
-        throw new Error(result.error || "Ошибка");
+      if (!response.ok) {
+        throw new Error(
+          result.error || "Ошибка сервера"
+        );
       }
+
+      if (!result.ok) {
+        throw new Error(
+          result.error || "Не удалось загрузить вакансии"
+        );
+      }
+
+      const vacancies =
+        Array.isArray(result.vacancies)
+          ? result.vacancies
+          : [];
+
+      if (vacancies.length === 0) {
+
+        container.innerHTML = `
+          <div class="empty">
+            Сейчас актуальных вакансий нет.<br>
+            Новые предложения появятся здесь автоматически.
+          </div>
+        `;
+
+        return;
+      }
+
+      container.innerHTML = "";
+
+      vacancies.forEach(function(vacancy) {
+
+        const card =
+          document.createElement("div");
+
+        card.className = "vacancy";
+
+        const title =
+          vacancy.title ||
+          vacancy.profession ||
+          "Вакансия";
+
+        const profession =
+          vacancy.profession ||
+          "";
+
+        const location =
+          vacancy.location ||
+          "Не указан";
+
+        const experience =
+          vacancy.experience ||
+          "Не указан";
+
+        const payment =
+          vacancy.payment ||
+          "Условия уточняются";
+
+        const conditions =
+          vacancy.conditions ||
+          "Условия уточняются";
+
+        const shift =
+          vacancy.shift ||
+          "Не указано";
+
+        const titleElement =
+          document.createElement("div");
+
+        titleElement.className =
+          "vacancy-title";
+
+        titleElement.textContent =
+          title;
+
+        card.appendChild(titleElement);
+
+
+        if (profession) {
+
+          const professionElement =
+            document.createElement("div");
+
+          professionElement.className =
+            "vacancy-profession";
+
+          professionElement.textContent =
+            "Профессия: " + profession;
+
+          card.appendChild(professionElement);
+
+        }
+
+
+        const info =
+          document.createElement("div");
+
+        info.className =
+          "vacancy-info";
+
+
+        addInfo(
+          info,
+          "📍 Объект",
+          location
+        );
+
+        addInfo(
+          info,
+          "👷 Опыт",
+          experience
+        );
+
+        addInfo(
+          info,
+          "💰 Оплата",
+          payment
+        );
+
+        addInfo(
+          info,
+          "🍽 Условия",
+          conditions
+        );
+
+        addInfo(
+          info,
+          "🏕 Вахта",
+          shift
+        );
+
+
+        card.appendChild(info);
+
+
+        const button =
+          document.createElement("button");
+
+        button.type = "button";
+
+        button.className = "apply";
+
+        button.textContent =
+          "ОТКЛИКНУТЬСЯ";
+
+        button.addEventListener(
+          "click",
+          function() {
+            openBot(
+              profession || title,
+              vacancy.id
+            );
+          }
+        );
+
+
+        card.appendChild(button);
+
+        container.appendChild(card);
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Ошибка загрузки вакансий:",
+        error
+      );
+
+      container.innerHTML = `
+        <div class="error-box">
+          ❌ Не удалось загрузить вакансии.
+          <br>
+          Проверьте интернет-соединение
+          и попробуйте ещё раз.
+
+          <button
+            type="button"
+            class="retry"
+            onclick="loadVacancies()"
+          >
+            ПОВТОРИТЬ
+          </button>
+        </div>
+      `;
+
+    }
+
+  }
+
+
+  function addInfo(
+    container,
+    label,
+    value
+  ) {
+
+    const element =
+      document.createElement("div");
+
+    const strong =
+      document.createElement("strong");
+
+    strong.textContent =
+      label + ":";
+
+    element.appendChild(strong);
+
+    element.appendChild(
+      document.createTextNode(
+        " " + value
+      )
+    );
+
+    container.appendChild(element);
+  }
+
+
+  async function sendApplication(
+    data,
+    messageElement
+  ) {
+
+    messageElement.style.display =
+      "block";
+
+    messageElement.className =
+      "message";
+
+    messageElement.textContent =
+      "Отправляем заявку...";
+
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/applications",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+              "Accept":
+                "application/json"
+            },
+
+            body:
+              JSON.stringify(data)
+          }
+        );
+
+
+      const result =
+        await response.json();
+
+
+      if (!response.ok || !result.ok) {
+
+        throw new Error(
+          result.error ||
+          "Ошибка отправки"
+        );
+
+      }
+
 
       messageElement.className =
         "message success";
@@ -571,11 +838,17 @@
       messageElement.textContent =
         "✅ Заявка успешно отправлена. Мы получили ваши данные.";
 
+
       return true;
+
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "Ошибка заявки:",
+        error
+      );
+
 
       messageElement.className =
         "message error";
@@ -583,111 +856,207 @@
       messageElement.textContent =
         "❌ Не удалось отправить заявку. Попробуйте ещё раз.";
 
+
       return false;
+
     }
+
   }
 
 
-  document
-    .getElementById("specialistForm")
-    .addEventListener("submit", async function(event) {
-
-      event.preventDefault();
-
-      const message =
-        document.getElementById("specialistMessage");
-
-      const success = await sendApplication({
-
-        type: "specialist",
-
-        name:
-          document.getElementById("specName").value,
-
-        phone:
-          document.getElementById("specPhone").value,
-
-        profession:
-          document.getElementById("specProfession").value,
-
-        city:
-          document.getElementById("specCity").value,
-
-        shift:
-          document.getElementById("specShift").value,
-
-        info:
-          document.getElementById("specInfo").value
-
-      }, message);
+  const specialistForm =
+    document.getElementById(
+      "specialistForm"
+    );
 
 
-      if (success) {
-        document.getElementById("specialistForm").reset();
+  if (specialistForm) {
+
+    specialistForm.addEventListener(
+      "submit",
+      async function(event) {
+
+        event.preventDefault();
+
+
+        const message =
+          document.getElementById(
+            "specialistMessage"
+          );
+
+
+        const success =
+          await sendApplication(
+
+            {
+              type: "specialist",
+
+              name:
+                document.getElementById(
+                  "specName"
+                ).value.trim(),
+
+              phone:
+                document.getElementById(
+                  "specPhone"
+                ).value.trim(),
+
+              profession:
+                document.getElementById(
+                  "specProfession"
+                ).value.trim(),
+
+              city:
+                document.getElementById(
+                  "specCity"
+                ).value.trim(),
+
+              shift:
+                document.getElementById(
+                  "specShift"
+                ).value,
+
+              info:
+                document.getElementById(
+                  "specInfo"
+                ).value.trim()
+            },
+
+            message
+
+          );
+
+
+        if (success) {
+
+          specialistForm.reset();
+
+        }
+
       }
-
-    });
-
-
-  document
-    .getElementById("employerForm")
-    .addEventListener("submit", async function(event) {
-
-      event.preventDefault();
-
-      const message =
-        document.getElementById("employerMessage");
-
-      const success = await sendApplication({
-
-        type: "employer",
-
-        company:
-          document.getElementById("company").value,
-
-        contact:
-          document.getElementById("contact").value,
-
-        phone:
-          document.getElementById("employerPhone").value,
-
-        profession:
-          document.getElementById("neededProfession").value,
-
-        specialists:
-          document.getElementById("specialists").value,
-
-        objectCity:
-          document.getElementById("objectCity").value,
-
-        conditions:
-          document.getElementById("conditions").value
-
-      }, message);
-
-
-      if (success) {
-        document.getElementById("employerForm").reset();
-      }
-
-    });
-
-
-  function openBot(profession) {
-
-    const text =
-      encodeURIComponent(
-        "Здравствуйте! Хочу откликнуться на вакансию: " +
-        profession
-      );
-
-    window.open(
-      "https://t.me/VakhtovykHelperBot?start=" +
-      text,
-      "_blank"
     );
 
   }
+
+
+  const employerForm =
+    document.getElementById(
+      "employerForm"
+    );
+
+
+  if (employerForm) {
+
+    employerForm.addEventListener(
+      "submit",
+      async function(event) {
+
+        event.preventDefault();
+
+
+        const message =
+          document.getElementById(
+            "employerMessage"
+          );
+
+
+        const success =
+          await sendApplication(
+
+            {
+              type: "employer",
+
+              company:
+                document.getElementById(
+                  "company"
+                ).value.trim(),
+
+              contact:
+                document.getElementById(
+                  "contact"
+                ).value.trim(),
+
+              phone:
+                document.getElementById(
+                  "employerPhone"
+                ).value.trim(),
+
+              profession:
+                document.getElementById(
+                  "neededProfession"
+                ).value.trim(),
+
+              specialists:
+                document.getElementById(
+                  "specialists"
+                ).value,
+
+              objectCity:
+                document.getElementById(
+                  "objectCity"
+                ).value.trim(),
+
+              conditions:
+                document.getElementById(
+                  "conditions"
+                ).value.trim()
+            },
+
+            message
+
+          );
+
+
+        if (success) {
+
+          employerForm.reset();
+
+        }
+
+      }
+    );
+
+  }
+
+
+  function openBot(
+    profession,
+    vacancyId
+  ) {
+
+    let message =
+      "Здравствуйте! Хочу откликнуться на вакансию: " +
+      profession;
+
+    if (vacancyId) {
+
+      message +=
+        ". ID вакансии: " +
+        vacancyId;
+
+    }
+
+
+    const url =
+      "https://t.me/VakhtovykHelperBot?start=" +
+      encodeURIComponent(message);
+
+
+    window.open(
+      url,
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+  }
+
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+      loadVacancies();
+    }
+  );
 
 </script>
 
